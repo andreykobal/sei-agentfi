@@ -49,21 +49,81 @@ auth.post("/send-magic-link", async (c) => {
 
     // Send email using Resend
     const emailResult = await resend.emails.send({
-      from: "noreply@avaethernity.top", // Update this to your verified domain
+      from: "Sei AgentFi <noreply@avaethernity.top>", // Add sender name
       to: email,
-      subject: "Your Magic Link - Sei AgentFi",
+      subject: "Your Sign-In Link for Sei AgentFi",
+      // Add proper headers for better deliverability
+      headers: {
+        "Reply-To": "support@avaethernity.top",
+        "X-Entity-Ref-ID": `magic-link-${Date.now()}`,
+      },
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Sei AgentFi</h2>
-          <p>Click the link below to sign in to your account:</p>
-          <a href="${magicLink}" style="display: inline-block; padding: 12px 24px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
-            Sign In
-          </a>
-          <p>This link will expire in 15 minutes.</p>
-          <p>If you didn't request this, you can safely ignore this email.</p>
-        </div>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Sign in to Sei AgentFi</title>
+        </head>
+        <body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <div style="background-color: #1f2937; padding: 24px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Sei AgentFi</h1>
+            </div>
+            <div style="padding: 32px 24px;">
+              <h2 style="color: #1f2937; margin: 0 0 16px 0; font-size: 20px; font-weight: 600;">Sign in to your account</h2>
+              <p style="color: #4b5563; margin: 0 0 24px 0; line-height: 1.5;">
+                You requested to sign in to Sei AgentFi. Click the button below to access your account securely.
+              </p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${magicLink}" 
+                   style="display: inline-block; 
+                          padding: 16px 32px; 
+                          background-color: #3b82f6; 
+                          color: #ffffff; 
+                          text-decoration: none; 
+                          border-radius: 6px; 
+                          font-weight: 600;
+                          font-size: 16px;
+                          border: none;
+                          cursor: pointer;">
+                  Sign In to Sei AgentFi
+                </a>
+              </div>
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 32px;">
+                <p style="color: #6b7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">
+                  This link will expire in 15 minutes for your security.
+                </p>
+                <p style="color: #6b7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">
+                  If you didn't request this sign-in link, you can safely ignore this email.
+                </p>
+                <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.4;">
+                  If the button doesn't work, copy and paste this link into your browser:<br>
+                  <span style="word-break: break-all; color: #3b82f6;">${magicLink}</span>
+                </p>
+              </div>
+            </div>
+            <div style="background-color: #f9fafb; padding: 16px 24px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; margin: 0; font-size: 12px; text-align: center;">
+                © ${new Date().getFullYear()} Sei AgentFi. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
       `,
-      text: `Welcome to Sei AgentFi! Click this link to sign in: ${magicLink}. This link expires in 15 minutes.`,
+      text: `Sign in to Sei AgentFi
+      
+You requested to sign in to your Sei AgentFi account.
+
+Click this link to sign in: ${magicLink}
+
+This link will expire in 15 minutes for your security.
+
+If you didn't request this sign-in link, you can safely ignore this email.
+
+---
+© ${new Date().getFullYear()} Sei AgentFi. All rights reserved.`,
     });
 
     if (emailResult.error) {

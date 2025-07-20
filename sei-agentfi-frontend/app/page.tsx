@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -72,15 +73,18 @@ export default function Home() {
         setIsAuthenticated(true);
         setUserEmail(data.email);
         setMessage("Authentication successful! Welcome to Sei AgentFi.");
+        toast.success("Authentication successful! Welcome to Sei AgentFi.");
 
         // Clean URL by removing token parameter
         window.history.replaceState({}, document.title, "/");
       } else {
         setMessage(data.error || "Authentication failed");
+        toast.error(data.error || "Authentication failed");
       }
     } catch (error) {
       console.error("Error verifying magic link:", error);
       setMessage("Network error occurred during verification");
+      toast.error("Network error occurred during verification");
     } finally {
       setIsVerifying(false);
     }
@@ -133,12 +137,15 @@ export default function Home() {
         setMessage("Magic link sent! Check your email to sign in.");
         setEmail("");
         setIsMagicLinkSent(true);
+        toast.success("Magic link sent! Check your email to sign in.");
       } else {
         setMessage(data.error || "Failed to send magic link");
+        toast.error(data.error || "Failed to send magic link");
       }
     } catch (error) {
       console.error("Error sending magic link:", error);
       setMessage("Network error occurred");
+      toast.error("Network error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -150,15 +157,18 @@ export default function Home() {
     setIsAuthenticated(false);
     setUserEmail("");
     setMessage("You have been logged out");
+    toast.info("You have been logged out");
   };
 
   const handleDialogOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
-      // Reset states when dialog closes
-      setIsMagicLinkSent(false);
-      setMessage("");
-      setEmail("");
+      // Delay the state reset to avoid flash during dialog close animation
+      setTimeout(() => {
+        setIsMagicLinkSent(false);
+        setMessage("");
+        setEmail("");
+      }, 150); // Small delay to allow dialog animation to complete
     }
   };
 
