@@ -7,6 +7,11 @@ interface UserState {
   userEmail: string;
   walletAddress: string;
 
+  // Balance state
+  ethBalance: string;
+  usdtBalance: string;
+  balancesLoading: boolean;
+
   // UI state
   isLoading: boolean;
   isVerifying: boolean;
@@ -14,6 +19,8 @@ interface UserState {
   // Actions
   setAuthenticated: (authenticated: boolean) => void;
   setUserData: (email: string, walletAddress: string) => void;
+  setBalances: (ethBalance: string, usdtBalance: string) => void;
+  setBalancesLoading: (loading: boolean) => void;
   setLoading: (loading: boolean) => void;
   setVerifying: (verifying: boolean) => void;
   logout: () => void;
@@ -27,6 +34,9 @@ export const useUserStore = create<UserState>()(
       isAuthenticated: false,
       userEmail: "",
       walletAddress: "",
+      ethBalance: "0",
+      usdtBalance: "0",
+      balancesLoading: false,
       isLoading: false,
       isVerifying: false,
 
@@ -41,6 +51,11 @@ export const useUserStore = create<UserState>()(
           isAuthenticated: true,
         }),
 
+      setBalances: (ethBalance, usdtBalance) =>
+        set({ ethBalance, usdtBalance }),
+
+      setBalancesLoading: (balancesLoading) => set({ balancesLoading }),
+
       setLoading: (loading) => set({ isLoading: loading }),
 
       setVerifying: (verifying) => set({ isVerifying: verifying }),
@@ -50,6 +65,9 @@ export const useUserStore = create<UserState>()(
           isAuthenticated: false,
           userEmail: "",
           walletAddress: "",
+          ethBalance: "0",
+          usdtBalance: "0",
+          balancesLoading: false,
           isLoading: false,
           isVerifying: false,
         }),
@@ -59,6 +77,9 @@ export const useUserStore = create<UserState>()(
           isAuthenticated: false,
           userEmail: "",
           walletAddress: "",
+          ethBalance: "0",
+          usdtBalance: "0",
+          balancesLoading: false,
           isLoading: false,
           isVerifying: false,
         }),
@@ -69,6 +90,8 @@ export const useUserStore = create<UserState>()(
         isAuthenticated: state.isAuthenticated,
         userEmail: state.userEmail,
         walletAddress: state.walletAddress,
+        ethBalance: state.ethBalance,
+        usdtBalance: state.usdtBalance,
       }),
     }
   )

@@ -6,6 +6,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { RESEND_API_KEY, JWT_SECRET } from "../config/env.config";
 import { connectToMongoDB } from "../config/database";
 import { UserModel, IUserData, User } from "../models/user.model";
+import { WalletService } from "../services/wallet.service";
 
 const auth = new Hono();
 const resend = new Resend(RESEND_API_KEY);
@@ -40,11 +41,11 @@ auth.post("/send-magic-link", async (c) => {
       return c.json({ error: "Invalid email format" }, 400);
     }
 
-    // Generate JWT token with email and expiration
+    // Generate JWT token with email (no expiration)
     const token = jwt.sign(
       { email, type: "magic-link" },
-      JWT_SECRET,
-      { expiresIn: "15m" } // Token expires in 15 minutes
+      JWT_SECRET
+      // No expiration - token will not expire
     );
 
     // Create magic link URL (update this to your frontend domain)
@@ -95,9 +96,6 @@ auth.post("/send-magic-link", async (c) => {
               </div>
               <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 32px;">
                 <p style="color: #6b7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">
-                  This link will expire in 15 minutes for your security.
-                </p>
-                <p style="color: #6b7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">
                   If you didn't request this sign-in link, you can safely ignore this email.
                 </p>
                 <p style="color: #6b7280; margin: 0; font-size: 14px; line-height: 1.4;">
@@ -120,8 +118,6 @@ auth.post("/send-magic-link", async (c) => {
 You requested to sign in to your Sei AgentFi account.
 
 Click this link to sign in: ${magicLink}
-
-This link will expire in 15 minutes for your security.
 
 If you didn't request this sign-in link, you can safely ignore this email.
 
@@ -189,9 +185,24 @@ auth.post("/verify-token", async (c) => {
         privateKey: privateKey,
       });
 
-      console.log(
-        `Created new user: ${payload.email} with wallet: ${account.address}`
-      );
+      // Fund the new user's wallet with 1000 USDT and 0.001 ETH
+      try {
+        const { ethTxHash, usdtTxHash } = await WalletService.fundNewUser(
+          account.address
+        );
+        console.log(
+          `Created new user: ${payload.email} with wallet: ${account.address}. Funded with ETH (${ethTxHash}) and USDT (${usdtTxHash})`
+        );
+      } catch (error) {
+        console.error(
+          `Failed to fund wallet for user ${payload.email}:`,
+          error
+        );
+        // Continue with user creation even if funding fails
+        console.log(
+          `Created new user: ${payload.email} with wallet: ${account.address} (funding failed)`
+        );
+      }
     } else {
       console.log(
         `User ${payload.email} already exists with wallet: ${user.walletAddress}`
@@ -274,6 +285,73 @@ auth.get("/me", async (c) => {
     }
 
     console.error("Error getting user info:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// Get user balances endpoint (requires Authorization header)
+auth.get("/balances", async (c) => {
+  try {
+    const authHeader = c.req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return c.json(
+        { error: "Authorization header with Bearer token required" },
+        401
+      );
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return c.json({ error: "Token is required" }, 401);
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (
+      typeof decoded === "string" ||
+      !decoded ||
+      typeof decoded.email !== "string"
+    ) {
+      return c.json({ error: "Invalid token format" }, 400);
+    }
+
+    const payload = decoded as jwt.JwtPayload & { email: string; type: string };
+
+    if (payload.type !== "magic-link") {
+      return c.json({ error: "Invalid token type" }, 400);
+    }
+
+    // Connect to database and get user info
+    await connectToMongoDB();
+    const user = await UserModel.findByEmail(payload.email);
+
+    if (!user) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
+    // Get user balances
+    const balances = await WalletService.getUserBalances(
+      user.walletAddress as `0x${string}`
+    );
+
+    return c.json({
+      walletAddress: user.walletAddress,
+      balances: {
+        eth: balances.ethBalance,
+        usdt: balances.usdtBalance,
+      },
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return c.json({ error: "Token has expired" }, 401);
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      return c.json({ error: "Invalid token" }, 401);
+    }
+
+    console.error("Error getting user balances:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });

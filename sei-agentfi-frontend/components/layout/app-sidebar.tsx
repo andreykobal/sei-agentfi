@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { useApi } from "@/hooks/useApi";
 import { useUserStore } from "@/stores/userStore";
+import { useBalances } from "@/hooks/useBalances";
 
 // Navigation items
 const items = [
@@ -71,6 +72,10 @@ export function AppSidebar() {
     setVerifying,
     logout: storeLogout,
   } = useUserStore();
+
+  // Balance management
+  const { ethBalance, usdtBalance, balancesLoading, fetchBalances } =
+    useBalances();
 
   // Local UI state (not shared across components)
   const [email, setEmail] = useState("");
@@ -266,6 +271,53 @@ export function AppSidebar() {
                         </span>
                       </SidebarMenuButton>
                     )}
+
+                    {/* Balance Display */}
+                    <div className="px-3 py-2 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          SEI Balance:
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {balancesLoading ? (
+                            <div className="w-12 h-3 bg-muted animate-pulse rounded"></div>
+                          ) : (
+                            <span className="text-xs font-mono">
+                              {ethBalance}
+                            </span>
+                          )}
+                          <button
+                            onClick={fetchBalances}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            title="Refresh balance"
+                          >
+                            ↻
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          USDT Balance:
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {balancesLoading ? (
+                            <div className="w-12 h-3 bg-muted animate-pulse rounded"></div>
+                          ) : (
+                            <span className="text-xs font-mono">
+                              {usdtBalance}
+                            </span>
+                          )}
+                          <button
+                            onClick={fetchBalances}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            title="Refresh balance"
+                          >
+                            ↻
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     <SidebarMenuButton onClick={handleLogout}>
                       <LogOut className="size-4" />
                       <span>Sign out</span>
