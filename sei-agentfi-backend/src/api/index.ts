@@ -5,6 +5,7 @@ import { client, graphql } from "ponder";
 import { connectToMongoDB } from "../config/database";
 import auth from "./auth";
 import tokens from "./tokens.api";
+import chat from "./chat.api";
 
 const app = new Hono();
 
@@ -25,6 +26,9 @@ app.route("/auth", auth);
 
 // Mount tokens routes
 app.route("/tokens", tokens);
+
+// Mount chat routes
+app.route("/chat", chat);
 
 app.use("/sql/*", client({ db, schema }));
 

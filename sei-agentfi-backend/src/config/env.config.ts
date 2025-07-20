@@ -5,6 +5,7 @@ dotenv.config();
 
 export const RESEND_API_KEY = process.env.RESEND_API_KEY;
 export const MONGODB_URL = process.env.MONGODB_URL;
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 export const JWT_SECRET =
   process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
 
@@ -21,8 +22,15 @@ if (!MONGODB_URL) {
   );
 }
 
+if (!OPENAI_API_KEY) {
+  throw new Error(
+    "OPENAI_API_KEY is required but not found in environment variables"
+  );
+}
+
 export const config = {
   RESEND_API_KEY,
   MONGODB_URL,
+  OPENAI_API_KEY,
   JWT_SECRET,
 } as const;
