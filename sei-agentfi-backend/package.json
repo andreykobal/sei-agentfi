@@ -12,11 +12,17 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "ponder": "^0.11.34",
+    "dotenv": "^17.2.0",
     "hono": "^4.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.17.0",
+    "ponder": "^0.11.34",
+    "resend": "^4.7.0",
     "viem": "^2.21.3"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mongodb": "^4.0.7",
     "@types/node": "^20.9.0",
     "eslint": "^8.53.0",
     "eslint-config-ponder": "^0.11.34",
