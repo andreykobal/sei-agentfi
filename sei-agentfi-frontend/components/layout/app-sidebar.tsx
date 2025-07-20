@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MessageSquare,
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/useApi";
+import { useUserStore } from "@/stores/userStore";
 
 // Navigation items
 const items = [
@@ -57,38 +58,54 @@ const items = [
 export function AppSidebar() {
   const searchParams = useSearchParams();
   const api = useApi();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
+
+  // Zustand store
+  const {
+    isAuthenticated,
+    userEmail,
+    walletAddress,
+    isLoading,
+    isVerifying,
+    setUserData,
+    setLoading,
+    setVerifying,
+    logout: storeLogout,
+  } = useUserStore();
+
+  // Local UI state (not shared across components)
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
+
+  // Refs to track processing to prevent double execution
+  const hasProcessedTokenRef = useRef(false);
+  const hasCheckedSavedTokenRef = useRef(false);
 
   useEffect(() => {
     // Check for magic link token in URL
     const token = searchParams.get("token");
-    if (token) {
+    if (token && !hasProcessedTokenRef.current) {
+      hasProcessedTokenRef.current = true;
       verifyMagicLinkToken(token);
       return;
     }
 
-    // Check if user is already authenticated
-    const savedToken = localStorage.getItem("authToken");
-    const savedEmail = localStorage.getItem("userEmail");
-    const savedWalletAddress = localStorage.getItem("walletAddress");
-
-    if (savedToken && savedEmail) {
-      if (savedWalletAddress) {
-        setWalletAddress(savedWalletAddress);
+    // Check if user is already authenticated - only run once on mount
+    if (!token && !hasCheckedSavedTokenRef.current) {
+      hasCheckedSavedTokenRef.current = true;
+      const savedToken = localStorage.getItem("authToken");
+      if (savedToken) {
+        // Get current auth state from store
+        const currentAuthState = useUserStore.getState().isAuthenticated;
+        if (!currentAuthState) {
+          verifyCurrentToken(savedToken);
+        }
       }
-      verifyCurrentToken(savedToken);
     }
-  }, [searchParams]);
+  }, [searchParams]); // Removed isAuthenticated dependency to prevent re-runs
 
   const verifyMagicLinkToken = async (token: string) => {
-    setIsVerifying(true);
+    setVerifying(true);
 
     try {
       const response = await api.post("/auth/verify-token", { token });
@@ -96,12 +113,8 @@ export function AppSidebar() {
 
       if (response.status === 200 && data.success) {
         localStorage.setItem("authToken", data.token);
-        localStorage.setItem("userEmail", data.email);
-        localStorage.setItem("walletAddress", data.walletAddress);
 
-        setIsAuthenticated(true);
-        setUserEmail(data.email);
-        setWalletAddress(data.walletAddress);
+        setUserData(data.email, data.walletAddress);
         toast.success("Authentication successful! Welcome to Sei AgentFi.");
 
         window.history.replaceState({}, document.title, "/");
@@ -115,7 +128,7 @@ export function AppSidebar() {
         "Network error occurred during verification";
       toast.error(errorMessage);
     } finally {
-      setIsVerifying(false);
+      setVerifying(false);
     }
   };
 
@@ -125,26 +138,21 @@ export function AppSidebar() {
 
       if (response.status === 200) {
         const data = response.data;
-        setIsAuthenticated(true);
-        setUserEmail(data.email);
-        setWalletAddress(data.walletAddress);
-        localStorage.setItem("walletAddress", data.walletAddress);
+        setUserData(data.email, data.walletAddress);
       } else {
         localStorage.removeItem("authToken");
-        localStorage.removeItem("userEmail");
-        localStorage.removeItem("walletAddress");
+        storeLogout();
       }
     } catch (error) {
       console.error("Error verifying token:", error);
       localStorage.removeItem("authToken");
-      localStorage.removeItem("userEmail");
-      localStorage.removeItem("walletAddress");
+      storeLogout();
     }
   };
 
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       const response = await api.post("/auth/send-magic-link", { email });
@@ -163,17 +171,13 @@ export function AppSidebar() {
         error.response?.data?.error || "Network error occurred";
       toast.error(errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("walletAddress");
-    setIsAuthenticated(false);
-    setUserEmail("");
-    setWalletAddress("");
+    storeLogout();
     toast.info("You have been logged out");
   };
 
