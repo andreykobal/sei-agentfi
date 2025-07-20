@@ -1,7 +1,7 @@
 import { createConfig } from "ponder";
 
 import { PoolManagerAbi } from "./abis/PoolManagerAbi";
-import { TokenFactoryAbi } from "./abis/TokenFactoryAbi";
+import { BondingCurveAbi } from "./abis/BondingCurveAbi";
 
 export default createConfig({
   chains: {
@@ -11,17 +11,17 @@ export default createConfig({
     },
   },
   contracts: {
-    TokenFactory: {
+    BondingCurve: {
       chain: "sei",
-      abi: TokenFactoryAbi,
-      address: "0x12c7dE8d71820772Fe64942Bd8384C720E298480",
-      startBlock: 186179144,
+      abi: BondingCurveAbi,
+      address: "0xA79c48f309eA5aAc68CC7197f7679db936030088",
+      startBlock: 186342869,
     },
     PoolManager: {
       chain: "sei",
       abi: PoolManagerAbi,
-      address: "0xe1af8ECcF5e46dF48953D52bD57005900f3d2753",
-      startBlock: 186179144,
+      address: "0xa97749a2623590CA356e09A90615543b5Cfee99b",
+      startBlock: 186342869,
     },
   },
 });

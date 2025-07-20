@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  MessageSquare,
+  Rocket,
   TrendingUp,
   BarChart3,
   User,
@@ -39,13 +39,13 @@ import { useUserStore } from "@/stores/userStore";
 // Navigation items
 const items = [
   {
-    title: "Chat",
-    url: "/chat",
-    icon: MessageSquare,
+    title: "Launchpad",
+    url: "/",
+    icon: Rocket,
   },
   {
-    title: "Trade",
-    url: "/trade",
+    title: "Portfolio",
+    url: "/portfolio",
     icon: TrendingUp,
   },
   {

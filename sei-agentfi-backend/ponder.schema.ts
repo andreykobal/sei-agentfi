@@ -1,6 +1,6 @@
 import { onchainTable, index } from "ponder";
 
-// TokenFactory Events
+// BondingCurve Events (TokenCreated)
 export const tokenCreated = onchainTable(
   "token_created",
   (t) => ({
@@ -11,6 +11,12 @@ export const tokenCreated = onchainTable(
     symbol: t.text().notNull(),
     decimals: t.integer().notNull(),
     initialSupply: t.bigint().notNull(),
+    description: t.text(),
+    image: t.text(),
+    website: t.text(),
+    twitter: t.text(),
+    telegram: t.text(),
+    discord: t.text(),
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
   }),

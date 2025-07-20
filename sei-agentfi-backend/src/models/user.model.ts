@@ -1,110 +1,68 @@
-import { MongoClient, Db, Collection } from "mongodb";
-import { getClient } from "../config/database";
+import mongoose, { Schema, Document } from "mongoose";
 
-export interface User {
-  _id?: string;
+export interface IUserData {
   email: string;
   walletAddress: string;
   privateKey: string;
+}
+
+export interface IUser extends IUserData, Document {
   createdAt: Date;
   updatedAt: Date;
 }
 
-export class UserModel {
-  private static DB_NAME = "seiagentfi";
-  private static COLLECTION_NAME = "users";
-
-  private static getCollection(): Collection<User> {
-    const client = getClient();
-    const db: Db = client.db(this.DB_NAME);
-    return db.collection<User>(this.COLLECTION_NAME);
+const userSchema = new Schema<IUser>(
+  {
+    email: { type: String, required: true, unique: true, index: true },
+    walletAddress: { type: String, required: true, unique: true, index: true },
+    privateKey: { type: String, required: true },
+  },
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt
   }
+);
 
+export const User = mongoose.model<IUser>("User", userSchema);
+
+export class UserModel {
   // Create a new user
-  static async create(
-    userData: Omit<User, "_id" | "createdAt" | "updatedAt">
-  ): Promise<User> {
-    const collection = this.getCollection();
-
-    const user: Omit<User, "_id"> = {
-      ...userData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const result = await collection.insertOne(user);
-
-    return {
-      _id: result.insertedId.toString(),
-      ...user,
-    };
+  static async create(userData: IUserData): Promise<IUser> {
+    const user = new User(userData);
+    return await user.save();
   }
 
   // Find user by email
-  static async findByEmail(email: string): Promise<User | null> {
-    const collection = this.getCollection();
-    const user = await collection.findOne({ email });
-
-    if (user) {
-      return {
-        ...user,
-        _id: user._id?.toString(),
-      };
-    }
-
-    return null;
+  static async findByEmail(email: string): Promise<IUser | null> {
+    return await User.findOne({ email });
   }
 
   // Find user by wallet address
   static async findByWalletAddress(
     walletAddress: string
-  ): Promise<User | null> {
-    const collection = this.getCollection();
-    const user = await collection.findOne({ walletAddress });
-
-    if (user) {
-      return {
-        ...user,
-        _id: user._id?.toString(),
-      };
-    }
-
-    return null;
+  ): Promise<IUser | null> {
+    return await User.findOne({ walletAddress });
   }
 
   // Update user
   static async update(
     email: string,
-    updateData: Partial<Omit<User, "_id" | "email" | "createdAt">>
-  ): Promise<User | null> {
-    const collection = this.getCollection();
-
-    const result = await collection.findOneAndUpdate(
+    updateData: Partial<IUserData>
+  ): Promise<IUser | null> {
+    return await User.findOneAndUpdate(
       { email },
-      {
-        $set: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
-      },
-      { returnDocument: "after" }
+      { $set: updateData },
+      { new: true, runValidators: true }
     );
-
-    if (result) {
-      return {
-        ...result,
-        _id: result._id?.toString(),
-      };
-    }
-
-    return null;
   }
 
-  // Create index on email for faster lookups
-  static async createIndexes(): Promise<void> {
-    const collection = this.getCollection();
+  // Get all users (for admin purposes)
+  static async findAll(): Promise<IUser[]> {
+    return await User.find({}).sort({ createdAt: -1 });
+  }
 
-    await collection.createIndex({ email: 1 }, { unique: true });
-    await collection.createIndex({ walletAddress: 1 }, { unique: true });
+  // Delete user
+  static async deleteByEmail(email: string): Promise<boolean> {
+    const result = await User.deleteOne({ email });
+    return result.deletedCount > 0;
   }
 }

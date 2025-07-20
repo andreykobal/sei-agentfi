@@ -5,7 +5,7 @@ import { Resend } from "resend";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { RESEND_API_KEY, JWT_SECRET } from "../config/env.config";
 import { connectToMongoDB } from "../config/database";
-import { UserModel, User } from "../models/user.model";
+import { UserModel, IUserData, User } from "../models/user.model";
 
 const auth = new Hono();
 const resend = new Resend(RESEND_API_KEY);

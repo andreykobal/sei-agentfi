@@ -22,6 +22,36 @@ export const TokenFactoryAbi = [
         name: "initialSupply",
         type: "uint256",
         internalType: "uint256"
+      },
+      {
+        name: "description",
+        type: "string",
+        internalType: "string"
+      },
+      {
+        name: "image",
+        type: "string",
+        internalType: "string"
+      },
+      {
+        name: "website",
+        type: "string",
+        internalType: "string"
+      },
+      {
+        name: "twitter",
+        type: "string",
+        internalType: "string"
+      },
+      {
+        name: "telegram",
+        type: "string",
+        internalType: "string"
+      },
+      {
+        name: "discord",
+        type: "string",
+        internalType: "string"
       }
     ],
     outputs: [
@@ -155,6 +185,42 @@ export const TokenFactoryAbi = [
         type: "uint256",
         indexed: false,
         internalType: "uint256"
+      },
+      {
+        name: "description",
+        type: "string",
+        indexed: false,
+        internalType: "string"
+      },
+      {
+        name: "image",
+        type: "string",
+        indexed: false,
+        internalType: "string"
+      },
+      {
+        name: "website",
+        type: "string",
+        indexed: false,
+        internalType: "string"
+      },
+      {
+        name: "twitter",
+        type: "string",
+        indexed: false,
+        internalType: "string"
+      },
+      {
+        name: "telegram",
+        type: "string",
+        indexed: false,
+        internalType: "string"
+      },
+      {
+        name: "discord",
+        type: "string",
+        indexed: false,
+        internalType: "string"
       }
     ],
     anonymous: false

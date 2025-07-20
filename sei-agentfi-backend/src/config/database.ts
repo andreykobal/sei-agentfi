@@ -1,31 +1,25 @@
-import { MongoClient } from "mongodb";
+import mongoose from "mongoose";
 import { MONGODB_URL } from "./env.config";
 
-let client: MongoClient | null = null;
+let isConnected = false;
 
-export async function connectToMongoDB(): Promise<MongoClient> {
+export async function connectToMongoDB(): Promise<void> {
   try {
-    if (client) {
+    if (isConnected) {
       console.log("MongoDB already connected");
-      return client;
+      return;
     }
 
     if (!MONGODB_URL) {
       throw new Error("MONGODB_URL is not defined");
     }
 
-    console.log("Connecting to MongoDB...");
-    client = new MongoClient(MONGODB_URL);
+    console.log("Connecting to MongoDB with Mongoose...");
 
-    await client.connect();
+    await mongoose.connect(MONGODB_URL);
 
-    console.log("Successfully connected to MongoDB");
-
-    // Test the connection
-    await client.db().admin().ping();
-    console.log("MongoDB ping successful");
-
-    return client;
+    isConnected = true;
+    console.log("Successfully connected to MongoDB with Mongoose");
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
     throw error;
@@ -34,9 +28,9 @@ export async function connectToMongoDB(): Promise<MongoClient> {
 
 export async function disconnectFromMongoDB(): Promise<void> {
   try {
-    if (client) {
-      await client.close();
-      client = null;
+    if (isConnected) {
+      await mongoose.disconnect();
+      isConnected = false;
       console.log("Disconnected from MongoDB");
     }
   } catch (error) {
@@ -45,13 +39,8 @@ export async function disconnectFromMongoDB(): Promise<void> {
   }
 }
 
-export function getClient(): MongoClient {
-  if (!client) {
-    throw new Error(
-      "MongoDB client not connected. Call connectToMongoDB() first."
-    );
-  }
-  return client;
+export function isMongoConnected(): boolean {
+  return isConnected && mongoose.connection.readyState === 1;
 }
 
 // Graceful shutdown
