@@ -21,14 +21,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/useApi";
 
 export default function Home() {
   const searchParams = useSearchParams();
+  const api = useApi();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
@@ -52,39 +53,31 @@ export default function Home() {
 
   const verifyMagicLinkToken = async (token: string) => {
     setIsVerifying(true);
-    setMessage("");
 
     try {
-      const response = await fetch("http://localhost:42069/auth/verify-token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token }),
-      });
+      const response = await api.post("/auth/verify-token", { token });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (response.status === 200 && data.success) {
         // Store the token for future API calls
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("userEmail", data.email);
 
         setIsAuthenticated(true);
         setUserEmail(data.email);
-        setMessage("Authentication successful! Welcome to Sei AgentFi.");
         toast.success("Authentication successful! Welcome to Sei AgentFi.");
 
         // Clean URL by removing token parameter
         window.history.replaceState({}, document.title, "/");
       } else {
-        setMessage(data.error || "Authentication failed");
         toast.error(data.error || "Authentication failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying magic link:", error);
-      setMessage("Network error occurred during verification");
-      toast.error("Network error occurred during verification");
+      const errorMessage =
+        error.response?.data?.error ||
+        "Network error occurred during verification";
+      toast.error(errorMessage);
     } finally {
       setIsVerifying(false);
     }
@@ -92,14 +85,10 @@ export default function Home() {
 
   const verifyCurrentToken = async (token: string) => {
     try {
-      const response = await fetch("http://localhost:42069/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get("/auth/me");
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setIsAuthenticated(true);
         setUserEmail(data.email);
       } else {
@@ -117,35 +106,23 @@ export default function Home() {
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage("");
 
     try {
-      const response = await fetch(
-        "http://localhost:42069/auth/send-magic-link",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
+      const response = await api.post("/auth/send-magic-link", { email });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage("Magic link sent! Check your email to sign in.");
+      if (response.status === 200) {
         setEmail("");
         setIsMagicLinkSent(true);
         toast.success("Magic link sent! Check your email to sign in.");
       } else {
-        setMessage(data.error || "Failed to send magic link");
         toast.error(data.error || "Failed to send magic link");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending magic link:", error);
-      setMessage("Network error occurred");
-      toast.error("Network error occurred");
+      const errorMessage =
+        error.response?.data?.error || "Network error occurred";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +133,6 @@ export default function Home() {
     localStorage.removeItem("userEmail");
     setIsAuthenticated(false);
     setUserEmail("");
-    setMessage("You have been logged out");
     toast.info("You have been logged out");
   };
 
@@ -166,7 +142,6 @@ export default function Home() {
       // Delay the state reset to avoid flash during dialog close animation
       setTimeout(() => {
         setIsMagicLinkSent(false);
-        setMessage("");
         setEmail("");
       }, 150); // Small delay to allow dialog animation to complete
     }
@@ -271,11 +246,6 @@ export default function Home() {
                           )}
                         </Button>
                       </form>
-                      {message && !isMagicLinkSent && (
-                        <div className="text-center p-3 border rounded-lg">
-                          <p className="text-foreground text-sm">{message}</p>
-                        </div>
-                      )}
                     </>
                   )}
                 </div>
