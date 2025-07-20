@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import * as jwt from "jsonwebtoken";
 import { Resend } from "resend";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { RESEND_API_KEY, JWT_SECRET } from "../config/env.config";
+import { connectToMongoDB } from "../config/database";
+import { UserModel, User } from "../models/user.model";
 
 const auth = new Hono();
 const resend = new Resend(RESEND_API_KEY);
@@ -168,9 +171,37 @@ auth.post("/verify-token", async (c) => {
       return c.json({ error: "Invalid token type" }, 400);
     }
 
+    // Connect to database
+    await connectToMongoDB();
+
+    // Check if user exists
+    let user = await UserModel.findByEmail(payload.email);
+
+    if (!user) {
+      // Generate new wallet for the user
+      const privateKey = generatePrivateKey();
+      const account = privateKeyToAccount(privateKey);
+
+      // Create new user with wallet
+      user = await UserModel.create({
+        email: payload.email,
+        walletAddress: account.address,
+        privateKey: privateKey,
+      });
+
+      console.log(
+        `Created new user: ${payload.email} with wallet: ${account.address}`
+      );
+    } else {
+      console.log(
+        `User ${payload.email} already exists with wallet: ${user.walletAddress}`
+      );
+    }
+
     return c.json({
       success: true,
       email: payload.email,
+      walletAddress: user.walletAddress,
       message: "Authentication successful",
       token: token, // Return the token for the frontend to store in headers
     });
@@ -221,8 +252,17 @@ auth.get("/me", async (c) => {
       return c.json({ error: "Invalid token type" }, 400);
     }
 
+    // Connect to database and get user info
+    await connectToMongoDB();
+    const user = await UserModel.findByEmail(payload.email);
+
+    if (!user) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
     return c.json({
       email: payload.email,
+      walletAddress: user.walletAddress,
       authenticated: true,
     });
   } catch (error) {

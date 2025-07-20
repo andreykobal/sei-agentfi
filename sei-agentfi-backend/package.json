@@ -18,7 +18,7 @@
     "mongodb": "^6.17.0",
     "ponder": "^0.11.34",
     "resend": "^4.7.0",
-    "viem": "^2.21.3"
+    "viem": "^2.32.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
