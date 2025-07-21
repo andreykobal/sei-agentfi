@@ -10,6 +10,7 @@ export const JWT_SECRET =
   process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
 export const USDT_ADDRESS = process.env.USDT_ADDRESS;
 export const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
+export const BONDING_CURVE_ADDRESS = process.env.BONDING_CURVE_ADDRESS;
 
 // Validate that required environment variables are present
 if (!RESEND_API_KEY) {
@@ -42,6 +43,12 @@ if (!ADMIN_PRIVATE_KEY) {
   );
 }
 
+if (!BONDING_CURVE_ADDRESS) {
+  throw new Error(
+    "BONDING_CURVE_ADDRESS is required but not found in environment variables"
+  );
+}
+
 export const config = {
   RESEND_API_KEY,
   MONGODB_URL,
@@ -49,4 +56,5 @@ export const config = {
   JWT_SECRET,
   USDT_ADDRESS,
   ADMIN_PRIVATE_KEY,
+  BONDING_CURVE_ADDRESS,
 } as const;

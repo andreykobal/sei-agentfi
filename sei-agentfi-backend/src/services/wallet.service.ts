@@ -36,7 +36,7 @@ export class WalletService {
       // Send 0.001 ETH
       const ethTxHash = await walletClient.sendTransaction({
         to: userAddress,
-        value: parseEther("0.001"),
+        value: parseEther("0.1"),
       });
 
       // Send 1000 USDT (18 decimals)

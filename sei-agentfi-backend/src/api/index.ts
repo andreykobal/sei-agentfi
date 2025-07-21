@@ -6,6 +6,7 @@ import { connectToMongoDB } from "../config/database";
 import auth from "./auth";
 import tokens from "./tokens.api";
 import chat from "./chat.api";
+import createToken from "./create-token.api";
 
 const app = new Hono();
 
@@ -29,6 +30,9 @@ app.route("/tokens", tokens);
 
 // Mount chat routes
 app.route("/chat", chat);
+
+// Mount create-token routes
+app.route("/create-token", createToken);
 
 app.use("/sql/*", client({ db, schema }));
 
