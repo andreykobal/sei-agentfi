@@ -10,7 +10,6 @@ export const tokenCreated = onchainTable(
     name: t.text().notNull(),
     symbol: t.text().notNull(),
     decimals: t.integer().notNull(),
-    initialSupply: t.bigint().notNull(),
     description: t.text(),
     image: t.text(),
     website: t.text(),

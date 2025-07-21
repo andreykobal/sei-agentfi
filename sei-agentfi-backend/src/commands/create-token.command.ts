@@ -7,7 +7,6 @@ import type { Hash } from "viem";
 export interface CreateTokenParams {
   name: string;
   symbol: string;
-  initialSupply: string; // Using string to handle large numbers
   description: string;
   image: string;
   website: string;
@@ -38,7 +37,6 @@ export class CreateTokenCommand {
       console.log(`🪙 [CREATE TOKEN] Token params:`, {
         name: params.name,
         symbol: params.symbol,
-        initialSupply: params.initialSupply,
         description: params.description.substring(0, 100) + "...",
       });
 
@@ -59,7 +57,6 @@ export class CreateTokenCommand {
       const contractArgs = [
         params.name,
         params.symbol,
-        BigInt(params.initialSupply), // Convert to BigInt for contract
         params.description,
         params.image,
         params.website,
@@ -71,12 +68,7 @@ export class CreateTokenCommand {
       console.log(
         `🪙 [CREATE TOKEN] Calling bonding curve contract at: ${BONDING_CURVE_ADDRESS}`
       );
-      console.log(
-        `🪙 [CREATE TOKEN] Contract args:`,
-        contractArgs.map((arg, i) =>
-          typeof arg === "bigint" ? `${arg.toString()}n` : arg
-        )
-      );
+      console.log(`🪙 [CREATE TOKEN] Contract args:`, contractArgs);
 
       // Execute the contract call
       const transactionHash = await writeContractWithAccount({
@@ -140,25 +132,6 @@ export class CreateTokenCommand {
     }
     if (params.description && params.description.length > 500) {
       errors.push("Token description must be 500 characters or less");
-    }
-
-    // Validate initial supply (allow 0 for bonding curve tokens)
-    if (!params.initialSupply || params.initialSupply.trim().length === 0) {
-      errors.push("Initial supply is required");
-    }
-
-    try {
-      const supply = BigInt(params.initialSupply);
-      if (supply < 0n) {
-        errors.push("Initial supply cannot be negative");
-      }
-      // Check for reasonable upper bound (e.g., 1 trillion tokens with 18 decimals)
-      const maxSupply = BigInt("1000000000000000000000000000000"); // 1T * 10^18
-      if (supply > maxSupply) {
-        errors.push("Initial supply is too large");
-      }
-    } catch {
-      errors.push("Initial supply must be a valid number");
     }
 
     // Validate optional URL fields (if provided, must be valid URLs)

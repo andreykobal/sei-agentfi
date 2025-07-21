@@ -10,7 +10,6 @@ export class TokenProjection {
         name: event.name,
         symbol: event.symbol,
         decimals: event.decimals,
-        initialSupply: event.initialSupply.toString(),
         description: event.description,
         image: event.image,
         website: event.website,

@@ -8,7 +8,6 @@ export interface IToken extends Document {
   name: string;
   symbol: string;
   decimals: number;
-  initialSupply: string; // Store as string to handle bigint
   description: string;
   image: string;
   website: string;
@@ -30,7 +29,6 @@ export interface TokenCreatedEvent {
   name: string;
   symbol: string;
   decimals: number;
-  initialSupply: bigint;
   description: string;
   image: string;
   website: string;
@@ -49,7 +47,6 @@ const tokenSchema = new Schema<IToken>(
     name: { type: String, required: true },
     symbol: { type: String, required: true },
     decimals: { type: Number, required: true },
-    initialSupply: { type: String, required: true },
     description: { type: String, required: false },
     image: { type: String, required: false },
     website: { type: String, required: false },

@@ -35,7 +35,6 @@ createToken.post("/", verifyJWT, async (c: any) => {
     console.log(`[${requestId}] Request body:`, {
       name: body.name,
       symbol: body.symbol,
-      initialSupply: body.initialSupply,
       description: body.description?.substring(0, 100) + "...",
       hasImage: !!body.image,
       hasWebsite: !!body.website,
@@ -67,7 +66,6 @@ createToken.post("/", verifyJWT, async (c: any) => {
     const tokenParams: CreateTokenParams = {
       name: body.name.trim(),
       symbol: body.symbol.trim().toUpperCase(),
-      initialSupply: body.initialSupply?.toString() || "0", // Default to 0 for bonding curve tokens
       description: body.description.trim(),
       image: body.image?.trim() || "",
       website: body.website?.trim() || "",
@@ -145,7 +143,6 @@ createToken.post("/validate", verifyJWT, async (c: any) => {
     const tokenParams: CreateTokenParams = {
       name: body.name?.trim() || "",
       symbol: body.symbol?.trim().toUpperCase() || "",
-      initialSupply: body.initialSupply?.toString() || "0", // Default to 0 for bonding curve tokens
       description: body.description?.trim() || "",
       image: body.image?.trim() || "",
       website: body.website?.trim() || "",

@@ -33,7 +33,6 @@ interface Token {
   name: string;
   symbol: string;
   decimals: number;
-  initialSupply: string;
   description: string;
   image: string;
   website: string;
@@ -103,12 +102,6 @@ export default function Home() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const formatSupply = (supply: string) => {
-    const num = BigInt(supply);
-    const formatted = (Number(num) / 1e18).toLocaleString();
-    return formatted;
   };
 
   const shortenAddress = (address: string) => {
@@ -186,12 +179,8 @@ export default function Home() {
       setIsCreating(true);
       setCreateError(null);
 
-      // Set initial supply to 0 (tokens are minted via bonding curve)
-      const initialSupplyWei = "0";
-
       const tokenData = {
         ...formData,
-        initialSupply: initialSupplyWei,
         symbol: formData.symbol.toUpperCase(),
       };
 
@@ -536,13 +525,6 @@ export default function Home() {
                   )}
 
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Supply:</span>
-                      <span className="font-mono">
-                        {formatSupply(token.initialSupply)}
-                      </span>
-                    </div>
-
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Creator:</span>
                       <span className="font-mono">
