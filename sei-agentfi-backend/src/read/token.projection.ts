@@ -8,9 +8,162 @@ import {
   ITokenSale,
   TokenSaleEvent,
   TokenSale,
+  TokenHolder,
 } from "../models/token.model";
 
+// Constants
+const BONDING_CURVE_ADDRESS = "0x34F494c5FC1535Bc20DcECa39b6A590C743fc088";
+const TOTAL_SUPPLY = BigInt("1000000000000000000000000000"); // 1 billion tokens in wei (18 decimals)
+
 export class TokenProjection {
+  // Helper function to calculate holder percentages and sort by descending percentage
+  private static calculateHolderPercentages(
+    holders: TokenHolder[]
+  ): TokenHolder[] {
+    console.log("🔍 [HOLDER CALC] Starting percentage calculation...");
+    console.log(
+      `🔍 [HOLDER CALC] TOTAL_SUPPLY constant: ${TOTAL_SUPPLY.toString()}`
+    );
+    console.log(
+      `🔍 [HOLDER CALC] Total supply in tokens: ${
+        Number(TOTAL_SUPPLY) / Math.pow(10, 18)
+      }`
+    );
+    console.log(`🔍 [HOLDER CALC] Input holders count: ${holders.length}`);
+
+    const result = holders
+      .map((holder, index) => {
+        // Convert BigInt to Number for floating point calculation
+        // holder.balance and TOTAL_SUPPLY are both in wei (18 decimals)
+        const balanceNum = Number(holder.balance) / Math.pow(10, 18); // Convert wei to tokens
+        const totalSupplyNum = Number(TOTAL_SUPPLY) / Math.pow(10, 18); // Convert wei to tokens
+        const percentage = (balanceNum / totalSupplyNum) * 100;
+
+        console.log(`🔍 [HOLDER CALC] Holder ${index + 1}:`);
+        console.log(`  - Address: ${holder.address}`);
+        console.log(`  - Balance (wei): ${holder.balance}`);
+        console.log(`  - Balance (tokens): ${balanceNum}`);
+        console.log(`  - Calculated percentage: ${percentage}%`);
+        console.log(
+          `  - Rounded percentage: ${Math.round(percentage * 100) / 100}%`
+        );
+        console.log(
+          `  - Original holder object:`,
+          JSON.stringify(holder, null, 2)
+        );
+
+        const newHolder = {
+          address: holder.address,
+          balance: holder.balance,
+          percentage: Math.round(percentage * 100) / 100, // Round to 2 decimal places
+        };
+
+        console.log(
+          `  - New holder object:`,
+          JSON.stringify(newHolder, null, 2)
+        );
+
+        return newHolder;
+      })
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 10); // Keep only top 10 holders
+
+    console.log("🔍 [HOLDER CALC] Final sorted holders:");
+    result.forEach((holder, index) => {
+      console.log(`  ${index + 1}. ${holder.address}: ${holder.percentage}%`);
+    });
+
+    return result;
+  }
+
+  // Helper function to update holders when tokens are bought
+  private static updateHoldersOnBuy(
+    currentHolders: TokenHolder[],
+    buyer: string,
+    tokensReceived: bigint
+  ): TokenHolder[] {
+    const holders = [...currentHolders];
+
+    // Find if buyer already exists
+    const existingHolderIndex = holders.findIndex(
+      (h) => h.address.toLowerCase() === buyer.toLowerCase()
+    );
+
+    if (existingHolderIndex >= 0 && holders[existingHolderIndex]) {
+      // Update existing holder
+      const currentBalance = BigInt(holders[existingHolderIndex].balance);
+      holders[existingHolderIndex].balance = (
+        currentBalance + tokensReceived
+      ).toString();
+    } else {
+      // Add new holder
+      holders.push({
+        address: buyer,
+        balance: tokensReceived.toString(),
+        percentage: 0, // Will be calculated in calculateHolderPercentages
+      });
+    }
+
+    // Update bonding curve balance (subtract tokens that were bought)
+    const bondingCurveIndex = holders.findIndex(
+      (h) => h.address.toLowerCase() === BONDING_CURVE_ADDRESS.toLowerCase()
+    );
+    if (bondingCurveIndex >= 0 && holders[bondingCurveIndex]) {
+      const currentBalance = BigInt(holders[bondingCurveIndex].balance);
+      holders[bondingCurveIndex].balance = (
+        currentBalance - tokensReceived
+      ).toString();
+    }
+
+    return this.calculateHolderPercentages(holders);
+  }
+
+  // Helper function to update holders when tokens are sold
+  private static updateHoldersOnSell(
+    currentHolders: TokenHolder[],
+    seller: string,
+    tokensSold: bigint
+  ): TokenHolder[] {
+    const holders = [...currentHolders];
+
+    // Find seller and update balance
+    const sellerIndex = holders.findIndex(
+      (h) => h.address.toLowerCase() === seller.toLowerCase()
+    );
+
+    if (sellerIndex >= 0 && holders[sellerIndex]) {
+      const currentBalance = BigInt(holders[sellerIndex].balance);
+      const newBalance = currentBalance - tokensSold;
+
+      if (newBalance <= 0) {
+        // Remove holder if balance is 0 or negative
+        holders.splice(sellerIndex, 1);
+      } else {
+        holders[sellerIndex].balance = newBalance.toString();
+      }
+    }
+
+    // Update bonding curve balance (add tokens that were sold back)
+    const bondingCurveIndex = holders.findIndex(
+      (h) => h.address.toLowerCase() === BONDING_CURVE_ADDRESS.toLowerCase()
+    );
+    if (bondingCurveIndex >= 0 && holders[bondingCurveIndex]) {
+      const currentBalance = BigInt(holders[bondingCurveIndex].balance);
+      holders[bondingCurveIndex].balance = (
+        currentBalance + tokensSold
+      ).toString();
+    } else {
+      // Add bonding curve if it doesn't exist (shouldn't happen but safety check)
+      holders.push({
+        address: BONDING_CURVE_ADDRESS,
+        balance: tokensSold.toString(),
+        percentage: 0,
+      });
+    }
+
+    return this.calculateHolderPercentages(holders);
+  }
+
   // Cleanup function to clear all collections on server startup
   static async cleanupCollections(): Promise<void> {
     try {
@@ -107,6 +260,15 @@ export class TokenProjection {
 
   static async handleTokenCreated(event: TokenCreatedEvent): Promise<void> {
     try {
+      // Initialize holders with bonding curve owning all tokens
+      const initialHolders: TokenHolder[] = [
+        {
+          address: BONDING_CURVE_ADDRESS,
+          balance: TOTAL_SUPPLY.toString(),
+          percentage: 100.0,
+        },
+      ];
+
       const tokenData = {
         eventId: event.id,
         tokenAddress: event.tokenAddress,
@@ -126,6 +288,7 @@ export class TokenProjection {
         volume24hBuy: "0",
         volume24hSell: "0",
         volume24hTotal: "0",
+        holders: initialHolders,
       };
 
       // Upsert token by tokenAddress (replace if exists)
@@ -168,14 +331,44 @@ export class TokenProjection {
       // Calculate 24h volume
       const volumeData = await this.calculate24hVolume(event.tokenAddress);
 
-      // Get current token to calculate new totalUsdtRaised
+      // Get current token to calculate new totalUsdtRaised and update holders
       const currentToken = await Token.findOne({
         tokenAddress: event.tokenAddress,
       });
       const currentUsdtRaised = BigInt(currentToken?.totalUsdtRaised || "0");
       const newUsdtRaised = (currentUsdtRaised + event.amountIn).toString();
 
-      // Update token price, market cap, totalUsdtRaised, and 24h volume using priceAfter
+      // Update holders on purchase
+      const currentHolders = currentToken?.holders || [];
+      console.log(
+        "🔍 [TOKEN PURCHASE] Current holders before update:",
+        currentHolders.length
+      );
+      currentHolders.forEach((holder, index) => {
+        console.log(
+          `  ${index + 1}. ${holder.address}: ${holder.balance} wei (${
+            holder.percentage
+          }%)`
+        );
+      });
+      console.log(
+        `🔍 [TOKEN PURCHASE] Buyer: ${
+          event.wallet
+        }, Tokens received: ${event.amountOut.toString()} wei`
+      );
+
+      const updatedHolders = this.updateHoldersOnBuy(
+        currentHolders,
+        event.wallet,
+        event.amountOut
+      );
+
+      console.log(
+        "🔍 [TOKEN PURCHASE] Updated holders after purchase:",
+        updatedHolders.length
+      );
+
+      // Update token price, market cap, totalUsdtRaised, holders, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -189,6 +382,7 @@ export class TokenProjection {
           volume24hBuy: volumeData.buyVolume,
           volume24hSell: volumeData.sellVolume,
           volume24hTotal: volumeData.totalVolume,
+          holders: updatedHolders,
         },
         { new: true }
       );
@@ -199,7 +393,7 @@ export class TokenProjection {
         } bought ${event.amountOut.toString()} tokens for ${event.amountIn.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, and 24h volume to ${volumeData.totalVolume} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, 24h volume to ${volumeData.totalVolume} wei, and ${updatedHolders.length} holders`
       );
     } catch (error) {
       console.error("Error projecting token purchase to MongoDB:", error);
@@ -227,14 +421,44 @@ export class TokenProjection {
       // Calculate 24h volume
       const volumeData = await this.calculate24hVolume(event.tokenAddress);
 
-      // Get current token to calculate new totalUsdtRaised (subtract on sale)
+      // Get current token to calculate new totalUsdtRaised (subtract on sale) and update holders
       const currentToken = await Token.findOne({
         tokenAddress: event.tokenAddress,
       });
       const currentUsdtRaised = BigInt(currentToken?.totalUsdtRaised || "0");
       const newUsdtRaised = (currentUsdtRaised - event.amountOut).toString();
 
-      // Update token price, market cap, totalUsdtRaised, and 24h volume using priceAfter
+      // Update holders on sale
+      const currentHolders = currentToken?.holders || [];
+      console.log(
+        "🔍 [TOKEN SALE] Current holders before update:",
+        currentHolders.length
+      );
+      currentHolders.forEach((holder, index) => {
+        console.log(
+          `  ${index + 1}. ${holder.address}: ${holder.balance} wei (${
+            holder.percentage
+          }%)`
+        );
+      });
+      console.log(
+        `🔍 [TOKEN SALE] Seller: ${
+          event.wallet
+        }, Tokens sold: ${event.amountIn.toString()} wei`
+      );
+
+      const updatedHolders = this.updateHoldersOnSell(
+        currentHolders,
+        event.wallet,
+        event.amountIn
+      );
+
+      console.log(
+        "🔍 [TOKEN SALE] Updated holders after sale:",
+        updatedHolders.length
+      );
+
+      // Update token price, market cap, totalUsdtRaised, holders, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -248,6 +472,7 @@ export class TokenProjection {
           volume24hBuy: volumeData.buyVolume,
           volume24hSell: volumeData.sellVolume,
           volume24hTotal: volumeData.totalVolume,
+          holders: updatedHolders,
         },
         { new: true }
       );
@@ -258,7 +483,7 @@ export class TokenProjection {
         } sold ${event.amountIn.toString()} tokens for ${event.amountOut.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, and 24h volume to ${volumeData.totalVolume} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, 24h volume to ${volumeData.totalVolume} wei, and ${updatedHolders.length} holders`
       );
     } catch (error) {
       console.error("Error projecting token sale to MongoDB:", error);

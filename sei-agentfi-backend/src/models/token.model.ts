@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface TokenHolder {
+  address: string;
+  balance: string; // Token balance in wei
+  percentage: number; // Percentage of total supply (0-100)
+}
+
 export interface IToken extends Document {
   // Event data from TokenFactory
   eventId: string; // Event ID
@@ -28,6 +34,9 @@ export interface IToken extends Document {
   volume24hBuy: string; // 24h buy volume in USDT (wei)
   volume24hSell: string; // 24h sell volume in USDT (wei)
   volume24hTotal: string; // 24h total volume in USDT (wei) = buy + sell
+
+  // Token holders (top 10 by percentage)
+  holders: TokenHolder[];
 
   // Computed fields for API
   createdAt: Date;
@@ -103,6 +112,15 @@ export interface TokenSaleEvent {
   blockNumber: bigint;
 }
 
+const tokenHolderSchema = new Schema(
+  {
+    address: { type: String, required: true },
+    balance: { type: String, required: true },
+    percentage: { type: Number, required: true },
+  },
+  { _id: false }
+);
+
 const tokenSchema = new Schema<IToken>(
   {
     eventId: { type: String, required: true },
@@ -125,6 +143,7 @@ const tokenSchema = new Schema<IToken>(
     volume24hBuy: { type: String, required: false, default: "0" },
     volume24hSell: { type: String, required: false, default: "0" },
     volume24hTotal: { type: String, required: false, default: "0" },
+    holders: { type: [tokenHolderSchema], required: false, default: [] },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt
