@@ -11,6 +11,100 @@ import {
 } from "../models/token.model";
 
 export class TokenProjection {
+  // Cleanup function to clear all collections on server startup
+  static async cleanupCollections(): Promise<void> {
+    try {
+      console.log("Cleaning up MongoDB collections...");
+
+      // Clear all tokens
+      const tokensDeleted = await Token.deleteMany({});
+      console.log(`Deleted ${tokensDeleted.deletedCount} tokens`);
+
+      // Clear all token purchases
+      const purchasesDeleted = await TokenPurchase.deleteMany({});
+      console.log(`Deleted ${purchasesDeleted.deletedCount} token purchases`);
+
+      // Clear all token sales
+      const salesDeleted = await TokenSale.deleteMany({});
+      console.log(`Deleted ${salesDeleted.deletedCount} token sales`);
+
+      console.log("MongoDB collections cleanup completed successfully");
+    } catch (error) {
+      console.error("Error cleaning up MongoDB collections:", error);
+      throw error;
+    }
+  }
+
+  // Helper function to calculate 24h volume for a token
+  private static async calculate24hVolume(tokenAddress: string): Promise<{
+    buyVolume: string;
+    sellVolume: string;
+    totalVolume: string;
+  }> {
+    try {
+      // Calculate timestamp for 24 hours ago
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const twentyFourHoursAgoTimestamp = (
+        twentyFourHoursAgo / 1000
+      ).toString(); // Convert to seconds as string
+
+      // Get all purchases in the last 24h (fetch raw documents)
+      const purchases = await TokenPurchase.find({
+        tokenAddress: tokenAddress,
+        timestamp: { $gte: twentyFourHoursAgoTimestamp },
+      }).lean();
+
+      // Get all sales in the last 24h (fetch raw documents)
+      const sales = await TokenSale.find({
+        tokenAddress: tokenAddress,
+        timestamp: { $gte: twentyFourHoursAgoTimestamp },
+      }).lean();
+
+      // Calculate buy volume (sum of amountIn from purchases - USDT spent)
+      let buyVolumeSum = BigInt(0);
+      for (const purchase of purchases) {
+        try {
+          buyVolumeSum += BigInt(purchase.amountIn);
+        } catch (error) {
+          console.error(
+            `Error parsing purchase amountIn: ${purchase.amountIn}`,
+            error
+          );
+        }
+      }
+
+      // Calculate sell volume (sum of amountOut from sales - USDT received)
+      let sellVolumeSum = BigInt(0);
+      for (const sale of sales) {
+        try {
+          sellVolumeSum += BigInt(sale.amountOut);
+        } catch (error) {
+          console.error(
+            `Error parsing sale amountOut: ${sale.amountOut}`,
+            error
+          );
+        }
+      }
+
+      const buyVolume = buyVolumeSum.toString();
+      const sellVolume = sellVolumeSum.toString();
+      const totalVolume = (buyVolumeSum + sellVolumeSum).toString();
+
+      return {
+        buyVolume,
+        sellVolume,
+        totalVolume,
+      };
+    } catch (error) {
+      console.error("Error calculating 24h volume:", error);
+      return {
+        buyVolume: "0",
+        sellVolume: "0",
+        totalVolume: "0",
+      };
+    }
+  }
+
   static async handleTokenCreated(event: TokenCreatedEvent): Promise<void> {
     try {
       const tokenData = {
@@ -28,6 +122,9 @@ export class TokenProjection {
         discord: event.discord,
         timestamp: event.timestamp.toString(),
         blockNumber: event.blockNumber.toString(),
+        volume24hBuy: "0",
+        volume24hSell: "0",
+        volume24hTotal: "0",
       };
 
       // Upsert token by tokenAddress (replace if exists)
@@ -67,7 +164,10 @@ export class TokenProjection {
       // Create new purchase record
       await TokenPurchase.create(purchaseData);
 
-      // Update token price and market cap using priceAfter
+      // Calculate 24h volume
+      const volumeData = await this.calculate24hVolume(event.tokenAddress);
+
+      // Update token price, market cap, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -77,6 +177,9 @@ export class TokenProjection {
         {
           price: priceAfter,
           marketCap: marketCap,
+          volume24hBuy: volumeData.buyVolume,
+          volume24hSell: volumeData.sellVolume,
+          volume24hTotal: volumeData.totalVolume,
         },
         { new: true }
       );
@@ -87,7 +190,7 @@ export class TokenProjection {
         } bought ${event.amountOut.toString()} tokens for ${event.amountIn.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei and market cap to ${marketCap} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, and 24h volume to ${volumeData.totalVolume} wei`
       );
     } catch (error) {
       console.error("Error projecting token purchase to MongoDB:", error);
@@ -112,7 +215,10 @@ export class TokenProjection {
       // Create new sale record
       await TokenSale.create(saleData);
 
-      // Update token price and market cap using priceAfter
+      // Calculate 24h volume
+      const volumeData = await this.calculate24hVolume(event.tokenAddress);
+
+      // Update token price, market cap, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -122,6 +228,9 @@ export class TokenProjection {
         {
           price: priceAfter,
           marketCap: marketCap,
+          volume24hBuy: volumeData.buyVolume,
+          volume24hSell: volumeData.sellVolume,
+          volume24hTotal: volumeData.totalVolume,
         },
         { new: true }
       );
@@ -132,7 +241,7 @@ export class TokenProjection {
         } sold ${event.amountIn.toString()} tokens for ${event.amountOut.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei and market cap to ${marketCap} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, and 24h volume to ${volumeData.totalVolume} wei`
       );
     } catch (error) {
       console.error("Error projecting token sale to MongoDB:", error);

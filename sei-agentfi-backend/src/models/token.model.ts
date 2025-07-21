@@ -21,6 +21,11 @@ export interface IToken extends Document {
   price: string; // Current token price in USDT (wei)
   marketCap: string; // Market cap in USDT (wei) = price * 1 billion
 
+  // 24h volume data (stored as wei strings)
+  volume24hBuy: string; // 24h buy volume in USDT (wei)
+  volume24hSell: string; // 24h sell volume in USDT (wei)
+  volume24hTotal: string; // 24h total volume in USDT (wei) = buy + sell
+
   // Computed fields for API
   createdAt: Date;
   updatedAt: Date;
@@ -113,6 +118,9 @@ const tokenSchema = new Schema<IToken>(
     blockNumber: { type: String, required: true },
     price: { type: String, required: false },
     marketCap: { type: String, required: false },
+    volume24hBuy: { type: String, required: false, default: "0" },
+    volume24hSell: { type: String, required: false, default: "0" },
+    volume24hTotal: { type: String, required: false, default: "0" },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

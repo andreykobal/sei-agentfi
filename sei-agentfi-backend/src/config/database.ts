@@ -20,6 +20,15 @@ export async function connectToMongoDB(): Promise<void> {
 
     isConnected = true;
     console.log("Successfully connected to MongoDB with Mongoose");
+
+    // Clean up collections on startup
+    try {
+      const { TokenProjection } = await import("../read/token.projection");
+      await TokenProjection.cleanupCollections();
+    } catch (cleanupError) {
+      console.error("Failed to cleanup collections:", cleanupError);
+      // Don't throw here, just log the error
+    }
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
     throw error;

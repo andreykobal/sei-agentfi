@@ -46,6 +46,9 @@ interface Token {
   blockNumber: string;
   price?: string; // Token price in USDT (wei)
   marketCap?: string; // Market cap in USDT (wei)
+  volume24hBuy?: string; // 24h buy volume in USDT (wei)
+  volume24hSell?: string; // 24h sell volume in USDT (wei)
+  volume24hTotal?: string; // 24h total volume in USDT (wei)
   createdAt: string;
   updatedAt: string;
 }
@@ -131,6 +134,24 @@ export default function Home() {
         return `$${(marketCap / 1e3).toFixed(2)}K`;
       } else {
         return `$${marketCap.toFixed(2)}`;
+      }
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const formatVolume = (volumeWei: string | undefined) => {
+    if (!volumeWei || volumeWei === "0") return "N/A";
+    try {
+      const volume = parseFloat(formatUnits(BigInt(volumeWei), 18)); // Convert wei to USDT
+      if (volume >= 1e9) {
+        return `$${(volume / 1e9).toFixed(2)}B`;
+      } else if (volume >= 1e6) {
+        return `$${(volume / 1e6).toFixed(2)}M`;
+      } else if (volume >= 1e3) {
+        return `$${(volume / 1e3).toFixed(2)}K`;
+      } else {
+        return `$${volume.toFixed(2)}`;
       }
     } catch {
       return "N/A";
@@ -590,6 +611,13 @@ export default function Home() {
                       <span className="text-muted-foreground">Market Cap:</span>
                       <span className="font-mono text-blue-600">
                         {formatMarketCap(token.marketCap)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">24h Volume:</span>
+                      <span className="font-mono text-purple-600">
+                        {formatVolume(token.volume24hTotal)}
                       </span>
                     </div>
 
