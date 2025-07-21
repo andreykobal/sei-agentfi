@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, X, Trash2, Loader2, MessageCircle } from "lucide-react";
+import { Send, Trash2, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,8 +45,7 @@ interface ChatHistoryResponse {
   error?: string;
 }
 
-export function FloatingChat() {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,49 +68,24 @@ export function FloatingChat() {
     scrollToBottom();
   }, [messages]);
 
-  // Scroll to bottom every time chat is opened
+  // Load chat history when component mounts (if authenticated)
   useEffect(() => {
-    if (isExpanded) {
-      scrollToBottom();
-    }
-  }, [isExpanded]);
-
-  // Load chat history when expanding chat (if authenticated)
-  useEffect(() => {
-    if (isExpanded && isAuthenticated && messages.length === 0) {
+    if (isAuthenticated && messages.length === 0) {
       loadChatHistory();
     }
-  }, [isExpanded, isAuthenticated]);
-
-  // Handle click outside to close expanded chat
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isExpanded) {
-        const chatContainer = document.querySelector("[data-chat-container]");
-        if (chatContainer && !chatContainer.contains(event.target as Node)) {
-          console.log(
-            `[FRONTEND] Closing chat - clicked outside chat container`
-          );
-          setIsExpanded(false);
-        }
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isExpanded]);
+  }, [isAuthenticated]);
 
   const loadChatHistory = async () => {
     if (!isAuthenticated) {
-      console.log(`[FRONTEND] Skipping chat history load - not authenticated`);
+      console.log(`[CHAT PAGE] Skipping chat history load - not authenticated`);
       return;
     }
 
-    console.log(`[FRONTEND] Loading chat history...`);
+    console.log(`[CHAT PAGE] Loading chat history...`);
     setIsLoadingHistory(true);
     try {
       const response = await get<ChatHistoryResponse>("/chat/history");
-      console.log(`[FRONTEND] Chat history response:`, {
+      console.log(`[CHAT PAGE] Chat history response:`, {
         success: response.data.success,
         historyCount: response.data.history?.length || 0,
         error: response.data.error,
@@ -128,22 +102,22 @@ export function FloatingChat() {
 
         setMessages(allMessages); // Store all messages for context
         console.log(
-          `[FRONTEND] Chat history loaded: ${allMessages.length} total messages (${visibleMessages.length} visible, ${toolMessages.length} tool messages hidden)`
+          `[CHAT PAGE] Chat history loaded: ${allMessages.length} total messages (${visibleMessages.length} visible, ${toolMessages.length} tool messages hidden)`
         );
       } else {
         console.error("Failed to load chat history:", response.data.error);
       }
     } catch (error: any) {
-      console.error(`[FRONTEND] Error loading chat history:`, error);
+      console.error(`[CHAT PAGE] Error loading chat history:`, error);
       // Don't show error toast for history loading - it's not critical
     } finally {
       setIsLoadingHistory(false);
-      console.log(`[FRONTEND] Chat history loading completed`);
+      console.log(`[CHAT PAGE] Chat history loading completed`);
     }
   };
 
   const emitRefreshEvents = () => {
-    console.log(`[FRONTEND] Emitting refresh events after chat response...`);
+    console.log(`[CHAT PAGE] Emitting refresh events after chat response...`);
 
     // Emit with 500ms delay as requested
     setTimeout(() => {
@@ -153,7 +127,7 @@ export function FloatingChat() {
       // Also emit token data refresh for any token pages that might be open
       chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {});
 
-      console.log(`[FRONTEND] Refresh events emitted`);
+      console.log(`[CHAT PAGE] Refresh events emitted`);
     }, 500);
   };
 
@@ -162,11 +136,11 @@ export function FloatingChat() {
     if (!message.trim() || !isAuthenticated || isLoading) return;
 
     const messageContent = message.trim();
-    console.log(`[FRONTEND] Sending message: "${messageContent}"`);
+    console.log(`[CHAT PAGE] Sending message: "${messageContent}"`);
 
     // Log current token context
     if (currentTokenAddress) {
-      console.log(`[FRONTEND] Current token context:`, {
+      console.log(`[CHAT PAGE] Current token context:`, {
         address: currentTokenAddress,
         name: currentTokenName,
         symbol: currentTokenSymbol,
@@ -185,17 +159,17 @@ export function FloatingChat() {
     setIsLoading(true);
 
     try {
-      console.log(`[FRONTEND] Making POST request to /chat/message`);
+      console.log(`[CHAT PAGE] Making POST request to /chat/message`);
       const requestBody = {
         message: messageContent,
         ...(currentTokenAddress && { currentTokenAddress }),
       };
 
-      console.log(`[FRONTEND] Request body:`, requestBody);
+      console.log(`[CHAT PAGE] Request body:`, requestBody);
 
       const response = await post<ChatResponse>("/chat/message", requestBody);
 
-      console.log(`[FRONTEND] Response received:`, {
+      console.log(`[CHAT PAGE] Response received:`, {
         status: response.status,
         success: response.data?.success,
         hasResponse: !!response.data?.response,
@@ -210,7 +184,7 @@ export function FloatingChat() {
           content: response.data.response,
           timestamp: response.data.timestamp || new Date().toISOString(),
         };
-        console.log(`[FRONTEND] Adding assistant message to chat:`, {
+        console.log(`[CHAT PAGE] Adding assistant message to chat:`, {
           contentLength: assistantMessage.content.length,
           timestamp: assistantMessage.timestamp,
         });
@@ -219,7 +193,7 @@ export function FloatingChat() {
         // Emit refresh events after successful response
         emitRefreshEvents();
       } else {
-        console.error(`[FRONTEND] Response indicates failure:`, {
+        console.error(`[CHAT PAGE] Response indicates failure:`, {
           success: response.data.success,
           error: response.data.error,
           details: response.data.details,
@@ -227,8 +201,8 @@ export function FloatingChat() {
         throw new Error(response.data.error || "Failed to get response");
       }
     } catch (error: any) {
-      console.error(`[FRONTEND] Error caught in sendMessage:`, error);
-      console.error(`[FRONTEND] Error details:`, {
+      console.error(`[CHAT PAGE] Error caught in sendMessage:`, error);
+      console.error(`[CHAT PAGE] Error details:`, {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -240,7 +214,7 @@ export function FloatingChat() {
         error.response?.data?.error ||
         error.message ||
         "Failed to send message";
-      console.log(`[FRONTEND] Using error message: "${errorMessage}"`);
+      console.log(`[CHAT PAGE] Using error message: "${errorMessage}"`);
 
       toast.error(errorMessage);
 
@@ -250,11 +224,11 @@ export function FloatingChat() {
         content: `Sorry, I encountered an error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
       };
-      console.log(`[FRONTEND] Adding error message to chat`);
+      console.log(`[CHAT PAGE] Adding error message to chat`);
       setMessages((prev) => [...prev, errorChatMessage]);
     } finally {
       setIsLoading(false);
-      console.log(`[FRONTEND] Request completed, loading set to false`);
+      console.log(`[CHAT PAGE] Request completed, loading set to false`);
     }
   };
 
@@ -385,142 +359,117 @@ export function FloatingChat() {
     );
   };
 
-  const handleInputFocus = () => {
-    if (!isAuthenticated) {
-      toast.info("Please sign in to use the AI chat assistant");
-      return;
-    }
-    console.log(`[FRONTEND] Expanding chat on input focus`);
-    setIsExpanded(true);
-  };
-
-  return (
-    <div
-      className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-3xl px-4"
-      data-chat-container
-    >
-      {/* Expanded Chat */}
-      {isExpanded && isAuthenticated && (
-        <Card
-          className="mb-4 shadow-2xl border-2 backdrop-blur-xl
-"
-          data-chat-card
-        >
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                AI Assistant
-              </CardTitle>
-              <div className="flex items-center gap-1">
-                {messages.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearHistory}
-                    className="p-1 h-8 w-8"
-                    title="Clear chat history"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log(`[FRONTEND] Closing chat via X button`);
-                    setIsExpanded(false);
-                  }}
-                  className="p-1 h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Ask me about tokens and the platform
-            </p>
-          </CardHeader>
-
-          <CardContent className="p-4 pt-0">
-            <div className="flex flex-col">
-              {/* Messages Container with fixed height and proper scrolling */}
-              <div className="h-80 mb-4">
-                <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
-                  {isLoadingHistory ? (
-                    <div className="flex items-center justify-center h-20">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        Loading chat history...
-                      </span>
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-20">
-                      <div className="text-center">
-                        <MessageCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Start a conversation
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {messages
-                        .filter((msg) => msg.role !== "tool") // Hide tool messages from UI
-                        .map((msg, index) => renderMessage(msg, index))}
-                      {isLoading && (
-                        <div className="flex justify-start mb-4">
-                          <div className="bg-muted text-muted-foreground rounded-lg px-3 py-2">
-                            <div className="flex items-center space-x-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span className="text-sm">Thinking...</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
+  if (!isAuthenticated) {
+    return (
+      <div className="p-6">
+        <Card className="w-full h-[calc(100vh-8rem)] flex items-center justify-center">
+          <CardContent>
+            <div className="text-center">
+              <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-semibold mb-2">Sign in Required</h2>
+              <p className="text-muted-foreground">
+                Please sign in to access the AI chat assistant.
+              </p>
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Always visible input at bottom */}
-      <div className="bg-zinc-900/80 backdrop-blur-xl border-2 rounded-lg shadow-md border-white shadow-white/50 mb-4">
-        <form onSubmit={sendMessage} className="flex items-center p-6">
-          <Input
-            ref={inputRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onFocus={handleInputFocus}
-            placeholder={
-              isAuthenticated
-                ? "Ask about tokens, trading, or the platform..."
-                : "Sign in to chat with AI assistant"
-            }
-            disabled={isLoading || !isAuthenticated}
-            className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent dark:bg-transparent"
-            maxLength={2000}
-          />
-          {isAuthenticated && (
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isLoading || !message.trim()}
-              className="ml-2"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-        </form>
       </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <Card className="w-full h-[calc(100vh-8rem)] flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl flex items-center gap-3">
+              <MessageCircle className="h-7 w-7" />
+              AI Assistant
+            </CardTitle>
+            {messages.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearHistory}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear History
+              </Button>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            Ask me about tokens, trading, and the platform
+          </p>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col p-6 pt-0 min-h-0">
+          {/* Messages Container */}
+          <div className="flex-1 mb-4 min-h-0">
+            <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center h-20">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Loading chat history...
+                  </span>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Start a conversation
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Ask me anything about tokens, trading, or the platform
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {messages
+                    .filter((msg) => msg.role !== "tool") // Hide tool messages from UI
+                    .map((msg, index) => renderMessage(msg, index))}
+                  {isLoading && (
+                    <div className="flex justify-start mb-4">
+                      <div className="bg-muted text-muted-foreground rounded-lg px-3 py-2">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+
+          {/* Input Form */}
+          <div className="flex-shrink-0">
+            <form onSubmit={sendMessage} className="flex items-center gap-2">
+              <Input
+                ref={inputRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ask about tokens, trading, or the platform..."
+                disabled={isLoading}
+                className="flex-1"
+                maxLength={2000}
+              />
+              <Button type="submit" disabled={isLoading || !message.trim()}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

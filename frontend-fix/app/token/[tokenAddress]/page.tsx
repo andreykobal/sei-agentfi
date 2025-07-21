@@ -10,8 +10,33 @@ import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
+
+interface TokenHolder {
+  address: string;
+  balance: string; // Token balance in wei
+  percentage: number; // Percentage of total supply (0-100)
+}
+
+interface TokenTransaction {
+  type: "buy" | "sell";
+  wallet: string;
+  amountIn: string;
+  amountOut: string;
+  timestamp: string;
+  blockNumber: string;
+  eventId: string;
+}
 
 interface Token {
   _id: string;
@@ -36,6 +61,8 @@ interface Token {
   volume24hSell?: string; // 24h sell volume in USDT (wei)
   volume24hTotal?: string; // 24h total volume in USDT (wei)
   userTokenBalance?: string; // User's balance of this token (wei)
+  holders?: TokenHolder[]; // Top 10 holders
+  recentTransactions?: TokenTransaction[]; // Recent buy/sell transactions
   createdAt: string;
   updatedAt: string;
 }
@@ -207,9 +234,56 @@ export default function TokenPage({ params }: TokenPageProps) {
     }
   };
 
+  const formatTokenBalance = (balanceWei: string) => {
+    try {
+      const balance = parseFloat(formatUnits(BigInt(balanceWei), 18));
+      if (balance >= 1e9) {
+        return `${(balance / 1e9).toFixed(2)}B`;
+      } else if (balance >= 1e6) {
+        return `${(balance / 1e6).toFixed(2)}M`;
+      } else if (balance >= 1e3) {
+        return `${(balance / 1e3).toFixed(2)}K`;
+      } else {
+        return balance.toFixed(2);
+      }
+    } catch {
+      return "0";
+    }
+  };
+
+  const getHolderDisplayName = (address: string) => {
+    const BONDING_CURVE_ADDRESS = "0x34F494c5FC1535Bc20DcECa39b6A590C743fc088";
+    if (address.toLowerCase() === BONDING_CURVE_ADDRESS.toLowerCase()) {
+      return "Bonding Curve";
+    }
+    return shortenAddress(address);
+  };
+
   // Helper function to shorten address like on home page
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Helper function to format relative time
+  const formatRelativeTime = (timestampString: string) => {
+    const timestamp = parseInt(timestampString) * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+      return `${days}d ago`;
+    } else if (hours > 0) {
+      return `${hours}h ago`;
+    } else if (minutes > 0) {
+      return `${minutes}m ago`;
+    } else {
+      return `${seconds}s ago`;
+    }
   };
 
   // Copy functions
@@ -466,13 +540,99 @@ export default function TokenPage({ params }: TokenPageProps) {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Chart Section - Takes up 2/3 of the width on large screens */}
-          <div className="lg:col-span-2">
-            <TokenChart tokenAddress={tokenAddress} className="h-full" />
+          <div className="lg:col-span-2 space-y-6">
+            <TokenChart tokenAddress={tokenAddress} />
+
+            {/* Recent Transactions Card */}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {token?.recentTransactions &&
+                token.recentTransactions.length > 0 ? (
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-transparent hover:bg-transparent z-10">
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Wallet</TableHead>
+                          <TableHead className="text-right">USDT</TableHead>
+                          <TableHead className="text-right">Tokens</TableHead>
+                          <TableHead className="text-right">Time</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {token.recentTransactions.map((tx) => (
+                          <TableRow key={tx.eventId}>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  tx.type === "buy"
+                                    ? "bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
+                                    : "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
+                                }
+                              >
+                                {tx.type.toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(
+                                      tx.wallet
+                                    );
+                                    toast.success("Wallet address copied!");
+                                  } catch (error) {
+                                    toast.error("Failed to copy address");
+                                  }
+                                }}
+                                className="font-mono hover:bg-muted/50 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                                title="Click to copy address"
+                              >
+                                {shortenAddress(tx.wallet)}
+                              </button>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {tx.type === "buy"
+                                ? `$${parseFloat(
+                                    formatUnits(BigInt(tx.amountIn), 18)
+                                  ).toFixed(2)}`
+                                : `$${parseFloat(
+                                    formatUnits(BigInt(tx.amountOut), 18)
+                                  ).toFixed(2)}`}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {tx.type === "buy"
+                                ? formatTokenBalance(tx.amountOut)
+                                : formatTokenBalance(tx.amountIn)}
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground">
+                              {formatRelativeTime(tx.timestamp)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {token.recentTransactions.length > 0 && (
+                      <div className="text-center text-sm text-muted-foreground py-3">
+                        Showing {token.recentTransactions.length} transactions
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center text-sm text-muted-foreground py-8">
+                    No transactions yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Swap Section - Takes up 1/3 of the width on large screens */}
           <div className="lg:col-span-1">
-            <div className="sticky top-8">
+            <div className="sticky top-8 space-y-4">
               <TokenSwap
                 tokenAddress={tokenAddress}
                 token={
@@ -490,6 +650,65 @@ export default function TokenPage({ params }: TokenPageProps) {
                 className="w-full"
                 onRefresh={() => fetchTokenData(true)}
               />
+
+              {/* Token Holders Card */}
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-lg">Top Holders</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {token?.holders && token.holders.length > 0 ? (
+                    <div className="space-y-3">
+                      {token.holders.slice(0, 10).map((holder, index) => (
+                        <div
+                          key={holder.address}
+                          className="flex items-center justify-between py-2 border-b border-border/30 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-muted-foreground font-mono">
+                              #{index + 1}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(
+                                    holder.address
+                                  );
+                                  toast.success("Address copied to clipboard!");
+                                } catch (error) {
+                                  toast.error("Failed to copy address");
+                                }
+                              }}
+                              className="text-sm font-mono hover:bg-muted/50 rounded px-2 py-1 transition-colors cursor-pointer"
+                              title="Click to copy address"
+                            >
+                              {getHolderDisplayName(holder.address)}
+                            </button>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">
+                              {holder.percentage.toFixed(2)}%
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatTokenBalance(holder.balance)}{" "}
+                              {token.symbol}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {token.holders.length > 10 && (
+                        <div className="text-center text-sm text-muted-foreground py-2">
+                          ... and {token.holders.length - 10} more holders
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center text-sm text-muted-foreground py-4">
+                      No holder data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

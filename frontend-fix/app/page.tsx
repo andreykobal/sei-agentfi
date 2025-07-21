@@ -648,7 +648,7 @@ export default function Home() {
             getSortedTokens().map((token) => (
               <Card
                 key={token._id}
-                className="w-full hover:shadow-lg transition-shadow duration-200"
+                className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col"
               >
                 <CardHeader>
                   <div className="flex items-start gap-3">
@@ -688,7 +688,7 @@ export default function Home() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 flex-1">
                   {token.description && (
                     <p className="text-sm text-muted-foreground line-clamp-3 overflow-hidden">
                       {token.description.length > 150
@@ -745,7 +745,7 @@ export default function Home() {
                   </div>
                 </CardContent>
 
-                <CardFooter className="gap-2">
+                <CardFooter className="gap-2 mt-auto">
                   <Button
                     size="sm"
                     onClick={() => router.push(`/token/${token.tokenAddress}`)}

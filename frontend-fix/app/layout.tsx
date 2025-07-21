@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { FloatingChat } from "@/components/shared/floating-chat";
+import { ConditionalFloatingChat } from "@/components/shared/conditional-floating-chat";
 import Bubbles from "@/components/shared/bg";
 
 const geistSans = Geist({
@@ -40,7 +40,7 @@ export default function RootLayout({
             {children}
           </main>
         </SidebarProvider>
-        <FloatingChat />
+        <ConditionalFloatingChat />
         <Toaster />
       </body>
     </html>

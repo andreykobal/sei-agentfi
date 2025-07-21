@@ -10,6 +10,7 @@ import {
   LogOut,
   Check,
   Wallet,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,11 @@ const items = [
     title: "Trade",
     url: "/trade",
     icon: TrendingUp,
+  },
+  {
+    title: "AI Assistant",
+    url: "/chat",
+    icon: MessageCircle,
   },
   // {
   //   title: "Insights",
