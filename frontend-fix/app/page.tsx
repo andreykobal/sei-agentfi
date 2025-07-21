@@ -25,7 +25,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Loader2, ArrowUpDown } from "lucide-react";
 import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
 import { toast } from "sonner";
 import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
@@ -82,6 +89,8 @@ interface CreateTokenResponse {
   error?: string;
 }
 
+type SortOption = "default" | "price" | "marketCap" | "volume";
+
 export default function Home() {
   const router = useRouter();
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -90,6 +99,7 @@ export default function Home() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("default");
   const [formData, setFormData] = useState<CreateTokenForm>({
     name: "",
     symbol: "",
@@ -311,6 +321,52 @@ export default function Home() {
     }
   };
 
+  // Sort tokens based on selected option
+  const getSortedTokens = () => {
+    const tokensCopy = [...tokens];
+
+    switch (sortBy) {
+      case "price":
+        return tokensCopy.sort((a, b) => {
+          const priceA = a.price
+            ? parseFloat(formatUnits(BigInt(a.price), 18))
+            : 0;
+          const priceB = b.price
+            ? parseFloat(formatUnits(BigInt(b.price), 18))
+            : 0;
+          return priceB - priceA; // Descending order
+        });
+      case "marketCap":
+        return tokensCopy.sort((a, b) => {
+          const marketCapA = a.marketCap
+            ? parseFloat(formatUnits(BigInt(a.marketCap), 18))
+            : 0;
+          const marketCapB = b.marketCap
+            ? parseFloat(formatUnits(BigInt(b.marketCap), 18))
+            : 0;
+          return marketCapB - marketCapA; // Descending order
+        });
+      case "volume":
+        return tokensCopy.sort((a, b) => {
+          const volumeA = a.volume24hTotal
+            ? parseFloat(formatUnits(BigInt(a.volume24hTotal), 18))
+            : 0;
+          const volumeB = b.volume24hTotal
+            ? parseFloat(formatUnits(BigInt(b.volume24hTotal), 18))
+            : 0;
+          return volumeB - volumeA; // Descending order
+        });
+      case "default":
+      default:
+        return tokensCopy.sort((a, b) => {
+          // Sort by creation date, newest first (default behavior)
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen p-6">
@@ -382,9 +438,28 @@ export default function Home() {
           <p className="text-lg text-muted-foreground">
             Discover and explore AI agents created on the Sei network
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {tokens.length} AI agent{tokens.length !== 1 ? "s" : ""} found
-          </p>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm text-muted-foreground">
+              {tokens.length} AI agent{tokens.length !== 1 ? "s" : ""} found
+            </p>
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={sortBy}
+                onValueChange={(value: SortOption) => setSortBy(value)}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Latest</SelectItem>
+                  <SelectItem value="price">Price</SelectItem>
+                  <SelectItem value="marketCap">Market Cap</SelectItem>
+                  <SelectItem value="volume">Volume</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {/* Tokens Grid */}
@@ -566,7 +641,7 @@ export default function Home() {
               </CardHeader>
             </Card>
           ) : (
-            tokens.map((token) => (
+            getSortedTokens().map((token) => (
               <Card
                 key={token._id}
                 className="w-full hover:shadow-lg transition-shadow duration-200"
