@@ -242,7 +242,7 @@ export default function TokenPage({ params }: TokenPageProps) {
 
   if (loading) {
     return (
-      <div className="h-full bg-background">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           {/* Loading Skeleton for Token Stats Cards */}
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -309,7 +309,7 @@ export default function TokenPage({ params }: TokenPageProps) {
 
   return (
     <div className="h-full bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-32">
         {/* Token Stats Cards */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* First Card - Token Info (2x size) */}

@@ -369,7 +369,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen p-6 pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <Skeleton className="h-10 w-64 mb-4" />
@@ -428,7 +428,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 pb-32">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
