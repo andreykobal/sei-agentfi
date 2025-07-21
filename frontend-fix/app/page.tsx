@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Loader2 } from "lucide-react";
 import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
 import { toast } from "sonner";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 interface Token {
   _id: string;
@@ -103,6 +104,22 @@ export default function Home() {
   useEffect(() => {
     fetchTokens();
   }, [get]);
+
+  // Listen for chat refresh events
+  useEffect(() => {
+    const handleRefreshTokens = () => {
+      console.log(`[HOME PAGE] Received refresh tokens event from chat`);
+      fetchTokens();
+    };
+
+    // Register event listener
+    chatEventEmitter.on(CHAT_EVENTS.REFRESH_TOKENS, handleRefreshTokens);
+
+    // Cleanup event listener on unmount
+    return () => {
+      chatEventEmitter.off(CHAT_EVENTS.REFRESH_TOKENS, handleRefreshTokens);
+    };
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

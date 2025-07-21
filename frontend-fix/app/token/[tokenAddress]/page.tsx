@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 interface Token {
   _id: string;
@@ -60,6 +61,32 @@ export default function TokenPage({ params }: TokenPageProps) {
   useEffect(() => {
     fetchTokenData();
   }, [tokenAddress, get]);
+
+  // Listen for chat refresh events
+  useEffect(() => {
+    const handleRefreshTokenData = (data: { tokenAddress?: string }) => {
+      console.log(
+        `[TOKEN PAGE] Received refresh token data event from chat:`,
+        data
+      );
+      // Refresh if no specific token address provided, or if it matches our current token
+      if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
+        console.log(`[TOKEN PAGE] Refreshing token data for: ${tokenAddress}`);
+        fetchTokenData();
+      }
+    };
+
+    // Register event listener
+    chatEventEmitter.on(CHAT_EVENTS.REFRESH_TOKEN_DATA, handleRefreshTokenData);
+
+    // Cleanup event listener on unmount
+    return () => {
+      chatEventEmitter.off(
+        CHAT_EVENTS.REFRESH_TOKEN_DATA,
+        handleRefreshTokenData
+      );
+    };
+  }, [tokenAddress]);
 
   const fetchTokenData = async () => {
     try {

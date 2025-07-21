@@ -9,6 +9,7 @@ import { formatUnits } from "viem";
 import { useUserStore } from "@/stores/userStore";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "sonner";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 interface Token {
   name: string;
@@ -52,6 +53,32 @@ export function TokenSwap({
       totalUsdtRaised: token?.totalUsdtRaised,
     });
   }, [token, tokenAddress]);
+
+  // Listen for chat refresh events
+  useEffect(() => {
+    const handleRefreshTokenData = (data: { tokenAddress?: string }) => {
+      console.log(
+        `[TOKEN SWAP] Received refresh token data event from chat:`,
+        data
+      );
+      // Refresh if no specific token address provided, or if it matches our current token
+      if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
+        console.log(`[TOKEN SWAP] Triggering refresh for: ${tokenAddress}`);
+        onRefresh?.();
+      }
+    };
+
+    // Register event listener
+    chatEventEmitter.on(CHAT_EVENTS.REFRESH_TOKEN_DATA, handleRefreshTokenData);
+
+    // Cleanup event listener on unmount
+    return () => {
+      chatEventEmitter.off(
+        CHAT_EVENTS.REFRESH_TOKEN_DATA,
+        handleRefreshTokenData
+      );
+    };
+  }, [tokenAddress, onRefresh]);
 
   // API hook for making requests
   const { post } = useApi();

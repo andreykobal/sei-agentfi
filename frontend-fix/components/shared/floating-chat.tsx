@@ -11,6 +11,7 @@ import { useApi } from "@/hooks/useApi";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 interface ChatMessage {
   role: "user" | "assistant" | "tool";
@@ -131,6 +132,21 @@ export function FloatingChat() {
     }
   };
 
+  const emitRefreshEvents = () => {
+    console.log(`[FRONTEND] Emitting refresh events after chat response...`);
+
+    // Emit with 500ms delay as requested
+    setTimeout(() => {
+      // Always refresh tokens list on home page
+      chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKENS);
+
+      // Also emit token data refresh for any token pages that might be open
+      chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {});
+
+      console.log(`[FRONTEND] Refresh events emitted`);
+    }, 500);
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !isAuthenticated || isLoading) return;
@@ -175,6 +191,9 @@ export function FloatingChat() {
           timestamp: assistantMessage.timestamp,
         });
         setMessages((prev) => [...prev, assistantMessage]);
+
+        // Emit refresh events after successful response
+        emitRefreshEvents();
       } else {
         console.error(`[FRONTEND] Response indicates failure:`, {
           success: response.data.success,
@@ -235,6 +254,22 @@ export function FloatingChat() {
     });
   };
 
+  // Helper function to wrap 0x strings with break-all styling
+  const processTextWithHexBreaking = (text: string) => {
+    // Split by 0x pattern and wrap those parts with break-all
+    const parts = text.split(/(0x[a-fA-F0-9]+)/g);
+    return parts.map((part, index) => {
+      if (part.match(/^0x[a-fA-F0-9]+$/)) {
+        return (
+          <span key={index} className="break-all">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   const renderMessage = (msg: ChatMessage, index: number) => {
     const isUser = msg.role === "user";
 
@@ -252,14 +287,63 @@ export function FloatingChat() {
         >
           <div className="text-sm">
             {isUser ? (
-              // User messages as plain text
+              // User messages as plain text with selective breaking for 0x strings
               <div className="whitespace-pre-wrap break-words">
-                {msg.content}
+                {processTextWithHexBreaking(msg.content)}
               </div>
             ) : (
-              // Assistant messages with simple markdown
-              <div className="markdown-content">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              // Assistant messages with markdown - let ReactMarkdown handle formatting
+              <div className="markdown-content break-words">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Handle paragraphs with proper spacing
+                    p: ({ children }) => (
+                      <p className="mb-2 last:mb-0 break-words">{children}</p>
+                    ),
+                    // Handle code blocks with proper wrapping
+                    code: ({ children, className }) => (
+                      <code
+                        className={`${
+                          className || ""
+                        } break-words bg-muted/50 px-1 py-0.5 rounded text-xs`}
+                      >
+                        {typeof children === "string"
+                          ? processTextWithHexBreaking(children)
+                          : children}
+                      </code>
+                    ),
+                    // Handle preformatted blocks
+                    pre: ({ children }) => (
+                      <pre className="whitespace-pre-wrap break-words bg-muted/50 p-2 rounded text-xs overflow-x-auto mb-2 last:mb-0">
+                        {children}
+                      </pre>
+                    ),
+                    // Handle lists with proper spacing
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-inside mb-2 last:mb-0 space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-inside mb-2 last:mb-0 space-y-1">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => (
+                      <li className="break-words">{children}</li>
+                    ),
+                    // Handle line breaks explicitly
+                    br: () => <br />,
+                    // Handle text nodes to process 0x strings
+                    text: ({ children }) => {
+                      if (typeof children === "string") {
+                        return <>{processTextWithHexBreaking(children)}</>;
+                      }
+                      return <>{children}</>;
+                    },
+                  }}
+                >
                   {msg.content}
                 </ReactMarkdown>
               </div>

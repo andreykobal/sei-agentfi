@@ -11,6 +11,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import { Card } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 interface TokenChartProps {
   tokenAddress: string;
@@ -46,30 +47,56 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
 
   // Fetch chart data
   useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    fetchChartData();
+  }, [tokenAddress, get]);
 
-        const response = await get<ChartApiResponse>(
-          `/tokens/chart/${tokenAddress}?days=7`
-        );
-
-        if (response.data.success) {
-          setChartData(response.data.data.candlestickData);
-        } else {
-          setError("Failed to fetch chart data");
-        }
-      } catch (err: any) {
-        console.error("Error fetching chart data:", err);
-        setError("Failed to fetch chart data");
-      } finally {
-        setLoading(false);
+  // Listen for chat refresh events
+  useEffect(() => {
+    const handleRefreshTokenData = (data: { tokenAddress?: string }) => {
+      console.log(
+        `[TOKEN CHART] Received refresh token data event from chat:`,
+        data
+      );
+      // Refresh if no specific token address provided, or if it matches our current token
+      if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
+        console.log(`[TOKEN CHART] Refreshing chart data for: ${tokenAddress}`);
+        fetchChartData();
       }
     };
 
-    fetchChartData();
-  }, [tokenAddress, get]);
+    // Register event listener
+    chatEventEmitter.on(CHAT_EVENTS.REFRESH_TOKEN_DATA, handleRefreshTokenData);
+
+    // Cleanup event listener on unmount
+    return () => {
+      chatEventEmitter.off(
+        CHAT_EVENTS.REFRESH_TOKEN_DATA,
+        handleRefreshTokenData
+      );
+    };
+  }, [tokenAddress]);
+
+  const fetchChartData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await get<ChartApiResponse>(
+        `/tokens/chart/${tokenAddress}?days=7`
+      );
+
+      if (response.data.success) {
+        setChartData(response.data.data.candlestickData);
+      } else {
+        setError("Failed to fetch chart data");
+      }
+    } catch (err: any) {
+      console.error("Error fetching chart data:", err);
+      setError("Failed to fetch chart data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Create and update chart
   useEffect(() => {
