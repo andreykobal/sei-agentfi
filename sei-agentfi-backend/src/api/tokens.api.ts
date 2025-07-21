@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { TokenProjection } from "../read/token.projection";
-import { ChartService } from "../services/chart.service";
-import { WalletService } from "../services/wallet.service";
+import { TokenProjection } from "../projections/token.projection";
+import { ChartService } from "../infrastructure/chart.service";
+import { WalletService } from "../infrastructure/wallet.service";
 import { User } from "../models/user.model";
-import { verifyJWT } from "../middleware/auth.middleware";
+import { verifyJWT } from "../middlewares/auth.middleware";
 import * as jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.config";
 

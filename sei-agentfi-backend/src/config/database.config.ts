@@ -23,7 +23,9 @@ export async function connectToMongoDB(): Promise<void> {
 
     // Clean up collections on startup
     try {
-      const { TokenProjection } = await import("../read/token.projection");
+      const { TokenProjection } = await import(
+        "../projections/token.projection"
+      );
       await TokenProjection.cleanupCollections();
     } catch (cleanupError) {
       console.error("Failed to cleanup collections:", cleanupError);

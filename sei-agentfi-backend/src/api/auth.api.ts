@@ -4,9 +4,9 @@ import * as jwt from "jsonwebtoken";
 import { Resend } from "resend";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { RESEND_API_KEY, JWT_SECRET } from "../config/env.config";
-import { connectToMongoDB } from "../config/database";
+import { connectToMongoDB } from "../config/database.config";
 import { UserModel, IUserData, User } from "../models/user.model";
-import { WalletService } from "../services/wallet.service";
+import { WalletService } from "../infrastructure/wallet.service";
 
 const auth = new Hono();
 const resend = new Resend(RESEND_API_KEY);

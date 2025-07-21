@@ -1,23 +1,23 @@
 import OpenAI from "openai";
 import { OPENAI_API_KEY } from "../config/env.config";
-import { TokenProjection } from "../read/token.projection";
+import { TokenProjection } from "../projections/token.projection";
 import { Chat, IChatMessage } from "../models/chat.model";
 import { User } from "../models/user.model";
-import { connectToMongoDB } from "../config/database";
+import { connectToMongoDB } from "../config/database.config";
 import {
   CreateTokenCommand,
   type CreateTokenParams,
-} from "../commands/create-token.command";
+} from "../application/create-token.command";
 import {
   BuyTokensCommand,
   type BuyTokensParams,
-} from "../commands/buy-tokens.command";
+} from "../application/buy-tokens.command";
 import {
   SellTokensCommand,
   type SellTokensParams,
-} from "../commands/sell-tokens.command";
+} from "../application/sell-tokens.command";
 import { WalletService } from "./wallet.service";
-import { PLATFORM_KNOWLEDGE_BASE } from "../config/knowledge-base";
+import { PLATFORM_KNOWLEDGE_BASE } from "./knowledge-base.util";
 
 class OpenAIService {
   private openai: OpenAI;
@@ -612,14 +612,10 @@ class OpenAIService {
             );
 
             // Format balances from wei to ETH/tokens
+            // All tokens in our platform use 18 decimals, so we always divide by 10^18
             const weiToEth = (weiValue: string): number => {
               if (!weiValue || weiValue === "0") return 0;
               return parseFloat(weiValue) / Math.pow(10, 18);
-            };
-
-            const weiToToken = (weiValue: string, decimals: number): number => {
-              if (!weiValue || weiValue === "0") return 0;
-              return parseFloat(weiValue) / Math.pow(10, decimals);
             };
 
             const formattedBalances = {
@@ -627,12 +623,12 @@ class OpenAIService {
               usdtBalance: weiToEth(balances.usdtBalance).toFixed(2),
             };
 
-            // Format token balances
+            // Format token balances - Always use 18 decimals since all platform tokens are 18 decimals
             const formattedTokenBalances = tokenBalances.map((token) => ({
               tokenAddress: token.tokenAddress,
               name: token.name,
               symbol: token.symbol,
-              balance: weiToToken(token.balance, token.decimals).toFixed(6),
+              balance: weiToEth(token.balance).toFixed(6), // Use weiToEth for consistency
               decimals: token.decimals,
             }));
 

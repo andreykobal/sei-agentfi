@@ -1,4 +1,4 @@
-import { writeContractWithAccount } from "../services/transaction.service";
+import { writeContractWithAccount } from "../infrastructure/transaction.service";
 import { UserModel } from "../models/user.model";
 import { BONDING_CURVE_ADDRESS } from "../config/env.config";
 import { BondingCurveAbi } from "../../abis/BondingCurveAbi";

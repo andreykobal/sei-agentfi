@@ -7,10 +7,10 @@ import {
   type Address,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { seiTestnet } from "../config/chains.js";
+import { seiTestnet } from "../config/chains.config.js";
 import { MockERC20Abi } from "../../abis/MockERC20Abi.js";
 import { ADMIN_PRIVATE_KEY, USDT_ADDRESS } from "../config/env.config.js";
-import { TokenProjection } from "../read/token.projection";
+import { TokenProjection } from "../projections/token.projection.js";
 
 // Create clients
 const publicClient = createPublicClient({

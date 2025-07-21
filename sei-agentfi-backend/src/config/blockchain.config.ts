@@ -1,6 +1,6 @@
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { seiTestnet } from "./chains";
+import { seiTestnet } from "./chains.config";
 import { ADMIN_PRIVATE_KEY } from "./env.config";
 
 // Create public client for reading blockchain data

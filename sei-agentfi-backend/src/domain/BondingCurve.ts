@@ -1,13 +1,13 @@
 import { ponder } from "ponder:registry";
 import { tokenCreated, tokenPurchase, tokenSale } from "ponder:schema";
-import { TokenProjection } from "../read/token.projection";
+import { TokenProjection } from "../projections/token.projection";
 import {
   TokenCreatedEvent,
   TokenPurchaseEvent,
   TokenSaleEvent,
   Token,
 } from "../models/token.model";
-import { connectToMongoDB } from "../config/database";
+import { connectToMongoDB } from "../config/database.config";
 
 // Ensure MongoDB connection is established
 connectToMongoDB().catch(console.error);

@@ -1,37 +1,37 @@
-import { writeContractWithAccount } from "../services/transaction.service";
+import { writeContractWithAccount } from "../infrastructure/transaction.service";
 import { UserModel } from "../models/user.model";
-import { BONDING_CURVE_ADDRESS } from "../config/env.config";
+import { BONDING_CURVE_ADDRESS, USDT_ADDRESS } from "../config/env.config";
 import { BondingCurveAbi } from "../../abis/BondingCurveAbi";
 import { MockERC20Abi } from "../../abis/MockERC20Abi";
 import type { Hash } from "viem";
 import { parseEther } from "viem";
 
-export interface SellTokensParams {
+export interface BuyTokensParams {
   tokenAddress: string;
-  tokenAmount: string; // Amount of tokens to sell (as string to handle precision)
+  usdtAmount: string; // Amount in USDT (as string to handle precision)
 }
 
-export interface SellTokensResult {
+export interface BuyTokensResult {
   transactionHash: Hash;
   success: boolean;
   error?: string;
 }
 
-export class SellTokensCommand {
+export class BuyTokensCommand {
   /**
-   * Sell tokens using the bonding curve contract
+   * Buy tokens using the bonding curve contract
    */
   static async execute(
     userEmail: string,
-    params: SellTokensParams
-  ): Promise<SellTokensResult> {
+    params: BuyTokensParams
+  ): Promise<BuyTokensResult> {
     try {
       console.log(
-        `💸 [SELL TOKENS] Starting token sale for user: ${userEmail}`
+        `💰 [BUY TOKENS] Starting token purchase for user: ${userEmail}`
       );
-      console.log(`💸 [SELL TOKENS] Sale params:`, {
+      console.log(`💰 [BUY TOKENS] Purchase params:`, {
         tokenAddress: params.tokenAddress,
-        tokenAmount: params.tokenAmount,
+        usdtAmount: params.usdtAmount,
       });
 
       // Validate input parameters
@@ -44,49 +44,49 @@ export class SellTokensCommand {
       }
 
       console.log(
-        `💸 [SELL TOKENS] Found user with wallet: ${user.walletAddress}`
+        `💰 [BUY TOKENS] Found user with wallet: ${user.walletAddress}`
       );
 
-      // Convert token amount to wei (assuming 18 decimals for tokens)
-      const tokenAmountWei = parseEther(params.tokenAmount);
+      // Convert USDT amount to wei (assuming 18 decimals for USDT)
+      const usdtAmountWei = parseEther(params.usdtAmount);
 
       console.log(
-        `💸 [SELL TOKENS] Step 1: Approving tokens for BondingCurve contract`
+        `💰 [BUY TOKENS] Step 1: Approving USDT for BondingCurve contract`
       );
 
-      // Step 1: Approve tokens for the BondingCurve contract
+      // Step 1: Approve USDT for the BondingCurve contract
       await writeContractWithAccount({
-        address: params.tokenAddress as `0x${string}`,
+        address: USDT_ADDRESS as `0x${string}`,
         abi: MockERC20Abi,
         functionName: "approve",
-        args: [BONDING_CURVE_ADDRESS as `0x${string}`, tokenAmountWei] as const,
+        args: [BONDING_CURVE_ADDRESS as `0x${string}`, usdtAmountWei] as const,
         account: {
           address: user.walletAddress,
           privateKey: user.privateKey,
         },
       });
 
-      console.log(`💸 [SELL TOKENS] ✅ Token approval successful`);
+      console.log(`💰 [BUY TOKENS] ✅ USDT approval successful`);
 
-      // Prepare contract arguments for sellTokens
+      // Prepare contract arguments for buyTokens
       const contractArgs = [
         params.tokenAddress as `0x${string}`,
-        tokenAmountWei,
+        usdtAmountWei,
       ] as const;
 
       console.log(
-        `💸 [SELL TOKENS] Step 2: Calling sellTokens on bonding curve contract at: ${BONDING_CURVE_ADDRESS}`
+        `💰 [BUY TOKENS] Step 2: Calling buyTokens on bonding curve contract at: ${BONDING_CURVE_ADDRESS}`
       );
-      console.log(`💸 [SELL TOKENS] Contract args:`, {
+      console.log(`💰 [BUY TOKENS] Contract args:`, {
         tokenAddress: params.tokenAddress,
-        tokenAmountWei: tokenAmountWei.toString(),
+        usdtAmountWei: usdtAmountWei.toString(),
       });
 
-      // Step 2: Execute the sellTokens contract call
+      // Step 2: Execute the buyTokens contract call
       const transactionHash = await writeContractWithAccount({
         address: BONDING_CURVE_ADDRESS as `0x${string}`,
         abi: BondingCurveAbi,
-        functionName: "sellTokens",
+        functionName: "buyTokens",
         args: contractArgs,
         account: {
           address: user.walletAddress,
@@ -95,7 +95,7 @@ export class SellTokensCommand {
       });
 
       console.log(
-        `💸 [SELL TOKENS] ✅ Token sale transaction sent: ${transactionHash}`
+        `💰 [BUY TOKENS] ✅ Token purchase transaction sent: ${transactionHash}`
       );
 
       return {
@@ -103,7 +103,7 @@ export class SellTokensCommand {
         success: true,
       };
     } catch (error) {
-      console.error(`💸 [SELL TOKENS] ❌ Error selling tokens:`, error);
+      console.error(`💰 [BUY TOKENS] ❌ Error buying tokens:`, error);
 
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -117,9 +117,9 @@ export class SellTokensCommand {
   }
 
   /**
-   * Validate sell tokens parameters
+   * Validate buy tokens parameters
    */
-  private static validateParams(params: SellTokensParams): void {
+  private static validateParams(params: BuyTokensParams): void {
     const errors: string[] = [];
 
     // Validate token address
@@ -135,18 +135,18 @@ export class SellTokensCommand {
       errors.push("Invalid token address format");
     }
 
-    // Validate token amount
-    if (!params.tokenAmount || params.tokenAmount.trim().length === 0) {
-      errors.push("Token amount is required");
+    // Validate USDT amount
+    if (!params.usdtAmount || params.usdtAmount.trim().length === 0) {
+      errors.push("USDT amount is required");
     }
 
-    if (params.tokenAmount) {
-      const amount = parseFloat(params.tokenAmount);
+    if (params.usdtAmount) {
+      const amount = parseFloat(params.usdtAmount);
       if (isNaN(amount) || amount <= 0) {
-        errors.push("Token amount must be a positive number");
+        errors.push("USDT amount must be a positive number");
       }
-      if (amount > 1000000000) {
-        errors.push("Token amount too large (max 1,000,000,000)");
+      if (amount > 1000000) {
+        errors.push("USDT amount too large (max 1,000,000)");
       }
     }
 

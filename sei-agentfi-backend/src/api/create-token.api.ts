@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { verifyJWT } from "../middleware/auth.middleware";
+import { verifyJWT } from "../middlewares/auth.middleware";
 import {
   CreateTokenCommand,
   type CreateTokenParams,
-} from "../commands/create-token.command";
+} from "../application/create-token.command";
 
 const createToken = new Hono();
 

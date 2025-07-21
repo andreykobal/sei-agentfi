@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { verifyJWT } from "../middleware/auth.middleware";
+import { verifyJWT } from "../middlewares/auth.middleware";
 import {
   SellTokensCommand,
   type SellTokensParams,
-} from "../commands/sell-tokens.command";
+} from "../application/sell-tokens.command";
 
 const sellTokens = new Hono();
 
