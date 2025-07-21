@@ -83,4 +83,26 @@ export class WalletService {
       throw new Error("Failed to get user balances");
     }
   }
+
+  /**
+   * Get user's token balance for a specific token
+   */
+  static async getTokenBalance(
+    userAddress: Address,
+    tokenAddress: Address
+  ): Promise<string> {
+    try {
+      const tokenBalance = await publicClient.readContract({
+        address: tokenAddress as Address,
+        abi: MockERC20Abi,
+        functionName: "balanceOf",
+        args: [userAddress],
+      });
+
+      return (tokenBalance as bigint).toString();
+    } catch (error) {
+      console.error("Error getting token balance:", error);
+      return "0"; // Return 0 if error occurred
+    }
+  }
 }

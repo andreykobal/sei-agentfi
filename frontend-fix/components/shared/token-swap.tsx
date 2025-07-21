@@ -14,6 +14,7 @@ interface Token {
   image: string;
   price?: string; // Token price in USDT (wei)
   totalUsdtRaised?: string; // Total USDT raised via bonding curve (wei)
+  userTokenBalance?: string; // User's balance of this token (wei)
 }
 
 interface TokenSwapProps {
@@ -41,9 +42,23 @@ export function TokenSwap({ tokenAddress, token, className }: TokenSwapProps) {
     }
   };
 
+  // Format token balance from wei to readable format
+  const formatTokenBalance = () => {
+    if (!token?.userTokenBalance || token.userTokenBalance === "0")
+      return "0.000";
+    try {
+      const balance = parseFloat(
+        formatUnits(BigInt(token.userTokenBalance), 18)
+      );
+      return balance.toFixed(3);
+    } catch {
+      return "0.000";
+    }
+  };
+
   // Token details from props
   const tokenSymbol = token?.symbol || "TOKEN";
-  const tokenBalance = "0.000"; // Placeholder - would come from wallet
+  const tokenBalance = formatTokenBalance();
   const usdtBalance = formatUsdtBalance();
 
   // Bonding curve constants (from smart contract)

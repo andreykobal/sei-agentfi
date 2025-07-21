@@ -33,6 +33,7 @@ interface Token {
   volume24hBuy?: string; // 24h buy volume in USDT (wei)
   volume24hSell?: string; // 24h sell volume in USDT (wei)
   volume24hTotal?: string; // 24h total volume in USDT (wei)
+  userTokenBalance?: string; // User's balance of this token (wei)
   createdAt: string;
   updatedAt: string;
 }
@@ -413,6 +414,7 @@ export default function TokenPage({ params }: TokenPageProps) {
                         image: token.image,
                         price: token.price,
                         totalUsdtRaised: token.totalUsdtRaised,
+                        userTokenBalance: token.userTokenBalance,
                       }
                     : null
                 }

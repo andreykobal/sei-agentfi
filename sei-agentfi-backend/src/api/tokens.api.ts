@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { TokenProjection } from "../read/token.projection";
 import { ChartService } from "../services/chart.service";
+import { WalletService } from "../services/wallet.service";
+import { User } from "../models/user.model";
 
 const tokens = new Hono();
 
@@ -70,9 +72,31 @@ tokens.get("/address/:address", async (c) => {
       );
     }
 
+    // Try to get user's token balance if authenticated
+    let userTokenBalance = "0";
+    try {
+      const authHeader = c.req.header("Authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const email = authHeader.replace("Bearer ", "");
+        const user = await User.findOne({ email });
+        if (user && user.walletAddress) {
+          userTokenBalance = await WalletService.getTokenBalance(
+            user.walletAddress as `0x${string}`,
+            address as `0x${string}`
+          );
+        }
+      }
+    } catch (balanceError) {
+      console.log("Could not fetch user token balance:", balanceError);
+      // Continue without balance - user might not be authenticated
+    }
+
     return c.json({
       success: true,
-      data: token,
+      data: {
+        ...token,
+        userTokenBalance,
+      },
       message: "Token retrieved successfully",
     });
   } catch (error) {
