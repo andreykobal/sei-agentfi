@@ -92,6 +92,11 @@ export class WalletService {
     tokenAddress: Address
   ): Promise<string> {
     try {
+      console.log("🔍 [WalletService] Getting token balance for:", {
+        userAddress,
+        tokenAddress,
+      });
+
       const tokenBalance = await publicClient.readContract({
         address: tokenAddress as Address,
         abi: MockERC20Abi,
@@ -99,9 +104,21 @@ export class WalletService {
         args: [userAddress],
       });
 
-      return (tokenBalance as bigint).toString();
+      const balanceString = (tokenBalance as bigint).toString();
+      console.log("✅ [WalletService] Token balance retrieved:", {
+        userAddress,
+        tokenAddress,
+        balance: balanceString,
+        balanceBigInt: tokenBalance,
+      });
+
+      return balanceString;
     } catch (error) {
-      console.error("Error getting token balance:", error);
+      console.error("❌ [WalletService] Error getting token balance:", {
+        userAddress,
+        tokenAddress,
+        error,
+      });
       return "0"; // Return 0 if error occurred
     }
   }

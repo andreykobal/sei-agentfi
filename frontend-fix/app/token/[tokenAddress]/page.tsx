@@ -65,17 +65,33 @@ export default function TokenPage({ params }: TokenPageProps) {
     try {
       setLoading(true);
       setError(null);
+      console.log("🔍 [TokenPage] Fetching token data for:", tokenAddress);
+
       const response = await get<ApiResponse>(
         `/tokens/address/${tokenAddress}`
       );
 
+      console.log("📥 [TokenPage] API response:", {
+        success: response.data.success,
+        hasData: !!response.data.data,
+        userTokenBalance: response.data.data?.userTokenBalance,
+        tokenName: response.data.data?.name,
+        tokenSymbol: response.data.data?.symbol,
+      });
+
       if (response.data.success) {
         setToken(response.data.data);
+        console.log("✅ [TokenPage] Token data set:", {
+          userTokenBalance: response.data.data.userTokenBalance,
+          name: response.data.data.name,
+          symbol: response.data.data.symbol,
+        });
       } else {
+        console.log("❌ [TokenPage] Token not found");
         setError("Token not found");
       }
     } catch (err: any) {
-      console.error("Error fetching token:", err);
+      console.error("❌ [TokenPage] Error fetching token:", err);
       setError(err.response?.data?.error || "Failed to fetch token data");
     } finally {
       setLoading(false);

@@ -40,6 +40,19 @@ export function TokenSwap({
   // Get USDT balance from user store
   const { usdtBalance: usdtBalanceWei } = useUserStore();
 
+  // Debug log when token prop changes
+  useEffect(() => {
+    console.log("🔄 [TokenSwap] Token prop updated:", {
+      tokenAddress,
+      hasToken: !!token,
+      tokenName: token?.name,
+      tokenSymbol: token?.symbol,
+      userTokenBalance: token?.userTokenBalance,
+      price: token?.price,
+      totalUsdtRaised: token?.totalUsdtRaised,
+    });
+  }, [token, tokenAddress]);
+
   // API hook for making requests
   const { post } = useApi();
 
@@ -56,14 +69,35 @@ export function TokenSwap({
 
   // Format token balance from wei to readable format
   const formatTokenBalance = () => {
-    if (!token?.userTokenBalance || token.userTokenBalance === "0")
+    console.log("🔍 [TokenSwap] Formatting token balance:", {
+      hasToken: !!token,
+      userTokenBalance: token?.userTokenBalance,
+      tokenSymbol: token?.symbol,
+      tokenName: token?.name,
+    });
+
+    if (!token?.userTokenBalance || token.userTokenBalance === "0") {
+      console.log("⚠️ [TokenSwap] No token balance or balance is 0");
       return "0.000";
+    }
+
     try {
-      const balance = parseFloat(
-        formatUnits(BigInt(token.userTokenBalance), 18)
-      );
-      return balance.toFixed(3);
-    } catch {
+      const balanceWei = BigInt(token.userTokenBalance);
+      const balance = parseFloat(formatUnits(balanceWei, 18));
+      const formattedBalance = balance.toFixed(3);
+
+      console.log("✅ [TokenSwap] Token balance formatted:", {
+        balanceWei: balanceWei.toString(),
+        balanceFormatted: balance,
+        finalDisplay: formattedBalance,
+      });
+
+      return formattedBalance;
+    } catch (error) {
+      console.error("❌ [TokenSwap] Error formatting token balance:", {
+        userTokenBalance: token?.userTokenBalance,
+        error,
+      });
       return "0.000";
     }
   };
@@ -72,6 +106,16 @@ export function TokenSwap({
   const tokenSymbol = token?.symbol || "TOKEN";
   const tokenBalance = formatTokenBalance();
   const usdtBalance = formatUsdtBalance();
+
+  // Debug log the final balance values used in UI
+  console.log("🎨 [TokenSwap] Final UI balance values:", {
+    tokenSymbol,
+    tokenBalance,
+    usdtBalance,
+    isTokenToUsdt,
+    fromBalance: isTokenToUsdt ? tokenBalance : usdtBalance,
+    toBalance: isTokenToUsdt ? usdtBalance : tokenBalance,
+  });
 
   // Bonding curve constants (from smart contract)
   const VIRTUAL_USDT_RESERVE = 6000; // 6000 USDT (natural units)

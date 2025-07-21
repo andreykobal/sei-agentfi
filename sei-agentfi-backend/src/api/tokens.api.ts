@@ -3,6 +3,9 @@ import { TokenProjection } from "../read/token.projection";
 import { ChartService } from "../services/chart.service";
 import { WalletService } from "../services/wallet.service";
 import { User } from "../models/user.model";
+import { verifyJWT } from "../middleware/auth.middleware";
+import * as jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/env.config";
 
 const tokens = new Hono();
 
@@ -76,27 +79,87 @@ tokens.get("/address/:address", async (c) => {
     let userTokenBalance = "0";
     try {
       const authHeader = c.req.header("Authorization");
+      console.log(
+        "🔍 [TokensAPI] Auth header:",
+        authHeader ? "Present" : "Missing"
+      );
+
       if (authHeader && authHeader.startsWith("Bearer ")) {
-        const email = authHeader.replace("Bearer ", "");
-        const user = await User.findOne({ email });
-        if (user && user.walletAddress) {
-          userTokenBalance = await WalletService.getTokenBalance(
-            user.walletAddress as `0x${string}`,
-            address as `0x${string}`
-          );
+        const token = authHeader.replace("Bearer ", "");
+        console.log("🔍 [TokensAPI] Extracted JWT token");
+
+        // Decode the JWT token to get the email
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          const email = decoded.email;
+
+          console.log("🔍 [TokensAPI] Decoded email from JWT:", email);
+
+          if (!email) {
+            console.log("⚠️ [TokensAPI] No email found in JWT payload");
+          } else {
+            const user = await User.findOne({ email });
+            console.log(
+              "🔍 [TokensAPI] User found:",
+              user
+                ? {
+                    email: user.email,
+                    walletAddress: user.walletAddress,
+                    hasWallet: !!user.walletAddress,
+                  }
+                : "No user found"
+            );
+
+            if (user && user.walletAddress) {
+              console.log("🔍 [TokensAPI] Fetching token balance for:", {
+                userWallet: user.walletAddress,
+                tokenAddress: address,
+              });
+
+              userTokenBalance = await WalletService.getTokenBalance(
+                user.walletAddress as `0x${string}`,
+                address as `0x${string}`
+              );
+
+              console.log(
+                "✅ [TokensAPI] User token balance retrieved:",
+                userTokenBalance
+              );
+            } else {
+              console.log("⚠️ [TokensAPI] User not found or no wallet address");
+            }
+          }
+        } catch (jwtError) {
+          console.error("❌ [TokensAPI] JWT decode error:", jwtError);
         }
+      } else {
+        console.log("⚠️ [TokensAPI] No valid auth header");
       }
     } catch (balanceError) {
-      console.log("Could not fetch user token balance:", balanceError);
+      console.error(
+        "❌ [TokensAPI] Could not fetch user token balance:",
+        balanceError
+      );
       // Continue without balance - user might not be authenticated
     }
 
+    const responseData = {
+      ...token,
+      userTokenBalance,
+    };
+
+    console.log("📤 [TokensAPI] Returning token data:", {
+      tokenAddress: address,
+      tokenName: token.name,
+      tokenSymbol: token.symbol,
+      userTokenBalance,
+      price: token.price,
+      totalUsdtRaised: token.totalUsdtRaised,
+    });
+
     return c.json({
       success: true,
-      data: {
-        ...token,
-        userTokenBalance,
-      },
+      data: responseData,
       message: "Token retrieved successfully",
     });
   } catch (error) {
