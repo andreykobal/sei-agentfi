@@ -219,7 +219,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-red-500 text-sidebar-primary-foreground">
                 <TrendingUp className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">

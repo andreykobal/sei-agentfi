@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { FloatingChat } from "@/components/ui/floating-chat";
+import { FloatingChat } from "@/components/shared/floating-chat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
