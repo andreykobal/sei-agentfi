@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import * as jwt from "jsonwebtoken";
 import { Resend } from "resend";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { RESEND_API_KEY, JWT_SECRET } from "../config/env.config";
+import { RESEND_API_KEY, JWT_SECRET, WEB_APP_URL } from "../config/env.config";
 import { connectToMongoDB } from "../config/database.config";
 import { UserModel, IUserData, User } from "../models/user.model";
 import { WalletService } from "../infrastructure/wallet.service";
@@ -48,8 +48,8 @@ auth.post("/send-magic-link", async (c) => {
       // No expiration - token will not expire
     );
 
-    // Create magic link URL (update this to your frontend domain)
-    const magicLink = `http://localhost:3000/?token=${token}`;
+    // Create magic link URL
+    const magicLink = `${WEB_APP_URL}/?token=${token}`;
 
     // Send email using Resend
     const emailResult = await resend.emails.send({

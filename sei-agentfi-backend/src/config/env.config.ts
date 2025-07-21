@@ -11,6 +11,7 @@ export const JWT_SECRET =
 export const USDT_ADDRESS = process.env.USDT_ADDRESS;
 export const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 export const BONDING_CURVE_ADDRESS = process.env.BONDING_CURVE_ADDRESS;
+export const WEB_APP_URL = process.env.WEB_APP_URL || "http://localhost:3000";
 
 // Validate that required environment variables are present
 if (!RESEND_API_KEY) {
@@ -57,4 +58,5 @@ export const config = {
   USDT_ADDRESS,
   ADMIN_PRIVATE_KEY,
   BONDING_CURVE_ADDRESS,
+  WEB_APP_URL,
 } as const;
