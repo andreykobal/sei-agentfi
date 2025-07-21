@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { TokenProjection } from "../read/token.projection";
+import { ChartService } from "../services/chart.service";
 
 const tokens = new Hono();
 
@@ -106,6 +107,44 @@ tokens.get("/creator/:creator", async (c) => {
         success: false,
         error: "Failed to fetch creator tokens",
         data: [],
+      },
+      500
+    );
+  }
+});
+
+// GET /tokens/chart/:address - Get chart data for token
+tokens.get("/chart/:address", async (c) => {
+  try {
+    const address = c.req.param("address");
+    const days = parseInt(c.req.query("days") || "7");
+
+    // Validate days parameter
+    if (days < 1 || days > 30) {
+      return c.json(
+        {
+          success: false,
+          error: "Days parameter must be between 1 and 30",
+          data: null,
+        },
+        400
+      );
+    }
+
+    const chartData = await ChartService.getTokenChartData(address, days);
+
+    return c.json({
+      success: true,
+      data: chartData,
+      message: "Chart data retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching chart data:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to fetch chart data",
+        data: null,
       },
       500
     );

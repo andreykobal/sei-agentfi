@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   createChart,
   ColorType,
@@ -8,20 +8,72 @@ import {
   ISeriesApi,
   CandlestickSeries,
 } from "lightweight-charts";
+import { useApi } from "@/hooks/useApi";
 import { Card } from "../ui/card";
+import { Skeleton } from "../ui/skeleton";
 
 interface TokenChartProps {
   tokenAddress: string;
   className?: string;
 }
 
+interface ChartDataPoint {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface ChartApiResponse {
+  success: boolean;
+  data: {
+    tokenAddress: string;
+    candlestickData: ChartDataPoint[];
+    interval: string;
+  };
+  message: string;
+}
+
 export function TokenChart({ tokenAddress, className }: TokenChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { get } = useApi();
 
+  // Fetch chart data
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await get<ChartApiResponse>(
+          `/tokens/chart/${tokenAddress}?days=7`
+        );
+
+        if (response.data.success) {
+          setChartData(response.data.data.candlestickData);
+        } else {
+          setError("Failed to fetch chart data");
+        }
+      } catch (err: any) {
+        console.error("Error fetching chart data:", err);
+        setError("Failed to fetch chart data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, [tokenAddress, get]);
+
+  // Create and update chart
+  useEffect(() => {
+    if (!chartContainerRef.current || loading) return;
 
     // Create chart
     const chart = createChart(chartContainerRef.current, {
@@ -34,10 +86,26 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
       width: chartContainerRef.current.clientWidth,
       height: 400,
       rightPriceScale: {
-        borderColor: "rgba(197, 203, 206, 0.8)",
+        mode: 0, // Normal mode
+        autoScale: true,
+        invertScale: false,
+        alignLabels: true,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+        // Configure precision for 6 decimal places
+        entireTextOnly: false,
+        ticksVisible: true,
+        borderVisible: true,
+      },
+      localization: {
+        // Configure price formatting to show 6 decimal places
+        priceFormatter: (price: number) => {
+          return price.toFixed(6);
+        },
       },
       timeScale: {
-        borderColor: "rgba(197, 203, 206, 0.8)",
         timeVisible: true,
         secondsVisible: false,
       },
@@ -71,44 +139,25 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
       borderVisible: false,
       wickUpColor: "#26a69a",
       wickDownColor: "#ef5350",
+      priceFormat: {
+        type: "price",
+        precision: 6,
+        minMove: 0.000001,
+      },
     });
 
-    // Generate dummy data
-    const generateDummyData = () => {
-      const data = [];
-      let basePrice = 100;
-      const now = new Date();
-
-      for (let i = 30; i >= 0; i--) {
-        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        const timeString = date.toISOString().split("T")[0]; // YYYY-MM-DD format
-
-        // Generate realistic OHLC data
-        const volatility = 0.05; // 5% volatility
-        const trend = Math.random() - 0.5;
-
-        const open = basePrice;
-        const change = (Math.random() - 0.5) * basePrice * volatility;
-        const high = open + Math.abs(change) + Math.random() * basePrice * 0.02;
-        const low = open - Math.abs(change) - Math.random() * basePrice * 0.02;
-        const close = open + change + trend * basePrice * 0.01;
-
-        basePrice = close;
-
-        data.push({
-          time: timeString,
-          open: Number(open.toFixed(4)),
-          high: Number(high.toFixed(4)),
-          low: Number(low.toFixed(4)),
-          close: Number(close.toFixed(4)),
-        });
-      }
-
-      return data;
-    };
-
-    const dummyData = generateDummyData();
-    candlestickSeries.setData(dummyData);
+    // Set real chart data
+    if (chartData.length > 0) {
+      // Convert timestamps to the format expected by lightweight-charts
+      const formattedData = chartData.map((point) => ({
+        time: point.time as any, // Cast to any to satisfy the Time type
+        open: point.open,
+        high: point.high,
+        low: point.low,
+        close: point.close,
+      }));
+      candlestickSeries.setData(formattedData);
+    }
 
     // Fit content to show all data
     chart.timeScale().fitContent();
@@ -137,7 +186,49 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
         candlestickSeriesRef.current = null;
       }
     };
-  }, [tokenAddress]);
+  }, [chartData, error]);
+
+  if (loading) {
+    return (
+      <Card className={`p-6 ${className}`}>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold">Price Chart</h2>
+          <p className="text-muted-foreground">
+            Token: {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
+          </p>
+        </div>
+        <div className="w-full h-[400px] rounded-lg border flex items-center justify-center">
+          <div className="text-center">
+            <Skeleton className="w-full h-full" />
+            <p className="text-sm text-muted-foreground mt-2">
+              Loading chart data...
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className={`p-6 ${className}`}>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold">Price Chart</h2>
+          <p className="text-muted-foreground">
+            Token: {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
+          </p>
+        </div>
+        <div className="w-full h-[400px] rounded-lg border flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Chart data will appear here once trading activity begins
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`p-6 ${className}`}>
@@ -145,6 +236,9 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
         <h2 className="text-2xl font-bold">Price Chart</h2>
         <p className="text-muted-foreground">
           Token: {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          30-minute intervals • {chartData.length} data points
         </p>
       </div>
       <div
