@@ -122,6 +122,7 @@ export class TokenProjection {
         discord: event.discord,
         timestamp: event.timestamp.toString(),
         blockNumber: event.blockNumber.toString(),
+        totalUsdtRaised: "0",
         volume24hBuy: "0",
         volume24hSell: "0",
         volume24hTotal: "0",
@@ -167,7 +168,14 @@ export class TokenProjection {
       // Calculate 24h volume
       const volumeData = await this.calculate24hVolume(event.tokenAddress);
 
-      // Update token price, market cap, and 24h volume using priceAfter
+      // Get current token to calculate new totalUsdtRaised
+      const currentToken = await Token.findOne({
+        tokenAddress: event.tokenAddress,
+      });
+      const currentUsdtRaised = BigInt(currentToken?.totalUsdtRaised || "0");
+      const newUsdtRaised = (currentUsdtRaised + event.amountIn).toString();
+
+      // Update token price, market cap, totalUsdtRaised, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -177,6 +185,7 @@ export class TokenProjection {
         {
           price: priceAfter,
           marketCap: marketCap,
+          totalUsdtRaised: newUsdtRaised,
           volume24hBuy: volumeData.buyVolume,
           volume24hSell: volumeData.sellVolume,
           volume24hTotal: volumeData.totalVolume,
@@ -190,7 +199,7 @@ export class TokenProjection {
         } bought ${event.amountOut.toString()} tokens for ${event.amountIn.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, and 24h volume to ${volumeData.totalVolume} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, and 24h volume to ${volumeData.totalVolume} wei`
       );
     } catch (error) {
       console.error("Error projecting token purchase to MongoDB:", error);
@@ -218,7 +227,14 @@ export class TokenProjection {
       // Calculate 24h volume
       const volumeData = await this.calculate24hVolume(event.tokenAddress);
 
-      // Update token price, market cap, and 24h volume using priceAfter
+      // Get current token to calculate new totalUsdtRaised (subtract on sale)
+      const currentToken = await Token.findOne({
+        tokenAddress: event.tokenAddress,
+      });
+      const currentUsdtRaised = BigInt(currentToken?.totalUsdtRaised || "0");
+      const newUsdtRaised = (currentUsdtRaised - event.amountOut).toString();
+
+      // Update token price, market cap, totalUsdtRaised, and 24h volume using priceAfter
       const priceAfter = event.priceAfter.toString(); // Price in wei
       const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
       const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
@@ -228,6 +244,7 @@ export class TokenProjection {
         {
           price: priceAfter,
           marketCap: marketCap,
+          totalUsdtRaised: newUsdtRaised,
           volume24hBuy: volumeData.buyVolume,
           volume24hSell: volumeData.sellVolume,
           volume24hTotal: volumeData.totalVolume,
@@ -241,7 +258,7 @@ export class TokenProjection {
         } sold ${event.amountIn.toString()} tokens for ${event.amountOut.toString()} USDT`
       );
       console.log(
-        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, and 24h volume to ${volumeData.totalVolume} wei`
+        `Updated token price to ${priceAfter} wei, market cap to ${marketCap} wei, totalUsdtRaised to ${newUsdtRaised} wei, and 24h volume to ${volumeData.totalVolume} wei`
       );
     } catch (error) {
       console.error("Error projecting token sale to MongoDB:", error);

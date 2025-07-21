@@ -29,6 +29,7 @@ interface Token {
   blockNumber: string;
   price?: string; // Token price in USDT (wei)
   marketCap?: string; // Market cap in USDT (wei)
+  totalUsdtRaised?: string; // Total USDT raised via bonding curve (wei)
   volume24hBuy?: string; // 24h buy volume in USDT (wei)
   volume24hSell?: string; // 24h sell volume in USDT (wei)
   volume24hTotal?: string; // 24h total volume in USDT (wei)
@@ -402,7 +403,21 @@ export default function TokenPage({ params }: TokenPageProps) {
           {/* Swap Section - Takes up 1/3 of the width on large screens */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
-              <TokenSwap tokenAddress={tokenAddress} className="w-full" />
+              <TokenSwap
+                tokenAddress={tokenAddress}
+                token={
+                  token
+                    ? {
+                        name: token.name,
+                        symbol: token.symbol,
+                        image: token.image,
+                        price: token.price,
+                        totalUsdtRaised: token.totalUsdtRaised,
+                      }
+                    : null
+                }
+                className="w-full"
+              />
             </div>
           </div>
         </div>

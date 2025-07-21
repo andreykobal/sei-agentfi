@@ -1,38 +1,187 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ArrowUpDown } from "lucide-react";
+import { formatUnits } from "viem";
+import { useUserStore } from "@/stores/userStore";
+
+interface Token {
+  name: string;
+  symbol: string;
+  image: string;
+  price?: string; // Token price in USDT (wei)
+  totalUsdtRaised?: string; // Total USDT raised via bonding curve (wei)
+}
 
 interface TokenSwapProps {
   tokenAddress: string;
+  token: Token | null;
   className?: string;
 }
 
-export function TokenSwap({ tokenAddress, className }: TokenSwapProps) {
-  const [fromAmount, setFromAmount] = useState("1.5");
-  const [toAmount, setToAmount] = useState("1,963.73");
-  const [isTokenToUsdt, setIsTokenToUsdt] = useState(true); // true = token to USDT, false = USDT to token
+export function TokenSwap({ tokenAddress, token, className }: TokenSwapProps) {
+  const [fromAmount, setFromAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
+  const [isTokenToUsdt, setIsTokenToUsdt] = useState(false); // true = token to USDT, false = USDT to token
 
-  // Token details (could be fetched based on tokenAddress in real implementation)
-  const tokenSymbol = "TOKEN";
-  const tokenBalance = "12.340";
-  const usdtBalance = "1,250.50";
+  // Get USDT balance from user store
+  const { usdtBalance: usdtBalanceWei } = useUserStore();
+
+  // Format USDT balance from wei to readable format
+  const formatUsdtBalance = () => {
+    if (!usdtBalanceWei || usdtBalanceWei === "0") return "0.00";
+    try {
+      const balance = parseFloat(formatUnits(BigInt(usdtBalanceWei), 18));
+      return balance.toFixed(2);
+    } catch {
+      return "0.00";
+    }
+  };
+
+  // Token details from props
+  const tokenSymbol = token?.symbol || "TOKEN";
+  const tokenBalance = "0.000"; // Placeholder - would come from wallet
+  const usdtBalance = formatUsdtBalance();
+
+  // Bonding curve constants (from smart contract)
+  const VIRTUAL_USDT_RESERVE = 6000; // 6000 USDT (natural units)
+  const VIRTUAL_TOKEN_RESERVE = 1073000191; // ~1.073B tokens (natural units)
+  const BONDING_CURVE_K = VIRTUAL_USDT_RESERVE * VIRTUAL_TOKEN_RESERVE; // k = 6,438,000,006,000
+
+  // Get token price in USDT (wei)
+  const getTokenPriceInUsdt = () => {
+    if (!token?.price || token.price === "0") return BigInt(0);
+    try {
+      return BigInt(token.price);
+    } catch {
+      return BigInt(0);
+    }
+  };
+
+  const tokenPriceWei = getTokenPriceInUsdt();
+
+  // Calculate current virtual reserves from totalUsdtRaised
+  const getCurrentVirtualReserves = () => {
+    try {
+      // Get total USDT raised so far
+      const totalUsdtRaisedWei = token?.totalUsdtRaised || "0";
+      const totalUsdtRaisedNatural = Number(
+        formatUnits(BigInt(totalUsdtRaisedWei), 18)
+      );
+
+      // Virtual reserves calculation (same as smart contract)
+      const virtualUsdtNatural = VIRTUAL_USDT_RESERVE + totalUsdtRaisedNatural;
+      const virtualTokensNatural = BONDING_CURVE_K / virtualUsdtNatural;
+
+      return { virtualUsdtNatural, virtualTokensNatural };
+    } catch {
+      return {
+        virtualUsdtNatural: VIRTUAL_USDT_RESERVE,
+        virtualTokensNatural: VIRTUAL_TOKEN_RESERVE,
+      };
+    }
+  };
+
+  // Calculate tokens to receive for USDT input (buying tokens)
+  const calculateTokensToReceive = (usdtAmountWei: bigint) => {
+    try {
+      const { virtualUsdtNatural, virtualTokensNatural } =
+        getCurrentVirtualReserves();
+
+      // Convert USDT from wei to natural units
+      const usdtAmountNatural = Number(formatUnits(usdtAmountWei, 18));
+
+      // New virtual state after purchase
+      const newVirtualUsdtNatural = virtualUsdtNatural + usdtAmountNatural;
+      const newVirtualTokensNatural = BONDING_CURVE_K / newVirtualUsdtNatural;
+
+      // Tokens to mint in natural units
+      const tokensToMintNatural =
+        virtualTokensNatural - newVirtualTokensNatural;
+
+      return tokensToMintNatural;
+    } catch {
+      return 0;
+    }
+  };
+
+  // Calculate USDT to receive for token input (selling tokens)
+  const calculateUsdtToReceive = (tokenAmountNatural: number) => {
+    try {
+      const { virtualUsdtNatural, virtualTokensNatural } =
+        getCurrentVirtualReserves();
+
+      // New virtual state after selling tokens
+      const newVirtualTokensNatural = virtualTokensNatural + tokenAmountNatural;
+      const newVirtualUsdtNatural = BONDING_CURVE_K / newVirtualTokensNatural;
+
+      // USDT to return in natural units
+      const usdtToReturnNatural = virtualUsdtNatural - newVirtualUsdtNatural;
+
+      return usdtToReturnNatural;
+    } catch {
+      return 0;
+    }
+  };
+
+  // Calculate exchange rate and amounts using bonding curve
+  useEffect(() => {
+    if (!fromAmount || fromAmount === "" || !token?.totalUsdtRaised) {
+      setToAmount("");
+      return;
+    }
+
+    const fromValue = parseFloat(fromAmount);
+    if (isNaN(fromValue) || fromValue <= 0) {
+      setToAmount("");
+      return;
+    }
+
+    let calculatedToAmount;
+    if (isTokenToUsdt) {
+      // Selling tokens for USDT
+      calculatedToAmount = calculateUsdtToReceive(fromValue);
+    } else {
+      // Buying tokens with USDT
+      const usdtAmountWei = BigInt(Math.floor(fromValue * 1e18));
+      calculatedToAmount = calculateTokensToReceive(usdtAmountWei);
+    }
+
+    setToAmount(calculatedToAmount.toFixed(6));
+  }, [fromAmount, isTokenToUsdt, token?.totalUsdtRaised]);
+
+  // Get current price in natural units for display (calculated from virtual reserves)
+  const getCurrentPriceNatural = () => {
+    try {
+      const { virtualUsdtNatural, virtualTokensNatural } =
+        getCurrentVirtualReserves();
+      // Price = virtualUsdtNatural / virtualTokensNatural (in natural units)
+      return virtualUsdtNatural / virtualTokensNatural;
+    } catch {
+      return 0;
+    }
+  };
+
+  const currentPriceNatural = getCurrentPriceNatural();
 
   const exchangeRate = isTokenToUsdt
-    ? `1 ${tokenSymbol} = 1,309.15 USDT`
-    : `1 USDT = 0.00076 ${tokenSymbol}`;
-  const usdValue = "$1,967.29";
-  const priceImpact = "(-0.186%)";
+    ? `1 ${tokenSymbol} = ${currentPriceNatural.toFixed(6)} USDT`
+    : `1 USDT = ${
+        currentPriceNatural > 0 ? (1 / currentPriceNatural).toFixed(6) : "0"
+      } ${tokenSymbol}`;
+
+  const usdValue = isTokenToUsdt
+    ? `$${(parseFloat(fromAmount || "0") * currentPriceNatural).toFixed(2)}`
+    : `$${parseFloat(fromAmount || "0").toFixed(2)}`;
 
   const handleSwapDirection = () => {
     setIsTokenToUsdt(!isTokenToUsdt);
-    // Swap the amounts
-    const tempAmount = fromAmount;
-    setFromAmount(toAmount);
-    setToAmount(tempAmount);
+    // Clear amounts when swapping direction
+    setFromAmount("");
+    setToAmount("");
   };
 
   const handleMaxClick = () => {
@@ -41,14 +190,44 @@ export function TokenSwap({ tokenAddress, className }: TokenSwapProps) {
 
   const fromTokenSymbol = isTokenToUsdt ? tokenSymbol : "USDT";
   const toTokenSymbol = isTokenToUsdt ? "USDT" : tokenSymbol;
-  const fromTokenIcon = isTokenToUsdt ? "🟡" : "💚";
-  const toTokenIcon = isTokenToUsdt ? "💚" : "🟡";
   const fromBalance = isTokenToUsdt ? tokenBalance : usdtBalance;
   const toBalance = isTokenToUsdt ? usdtBalance : tokenBalance;
 
-  const TokenDisplay = ({ symbol, icon }: { symbol: string; icon: string }) => (
+  const USDTIcon = () => (
+    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+      <span className="text-white font-bold text-sm">$</span>
+    </div>
+  );
+
+  const TokenAvatar = () =>
+    token?.image ? (
+      <img
+        src={token.image}
+        alt={token.name}
+        className="w-8 h-8 rounded-full object-cover border border-border"
+        onError={(e) => {
+          (
+            e.target as HTMLImageElement
+          ).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            token.name
+          )}&background=random&size=32`;
+        }}
+      />
+    ) : (
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
+        {tokenSymbol.charAt(0)}
+      </div>
+    );
+
+  const TokenDisplay = ({
+    symbol,
+    isUsdt,
+  }: {
+    symbol: string;
+    isUsdt: boolean;
+  }) => (
     <div className="flex items-center gap-2 h-16 px-4 py-3 bg-muted rounded-lg min-w-[120px]">
-      <span className="text-lg">{icon}</span>
+      {isUsdt ? <USDTIcon /> : <TokenAvatar />}
       <span className="font-semibold">{symbol}</span>
     </div>
   );
@@ -77,7 +256,7 @@ export function TokenSwap({ tokenAddress, className }: TokenSwapProps) {
                 placeholder="0.0"
               />
             </div>
-            <TokenDisplay symbol={fromTokenSymbol} icon={fromTokenIcon} />
+            <TokenDisplay symbol={fromTokenSymbol} isUsdt={!isTokenToUsdt} />
           </div>
 
           <div className="flex justify-between items-center text-sm">
@@ -118,21 +297,15 @@ export function TokenSwap({ tokenAddress, className }: TokenSwapProps) {
 
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <Input
-                type="text"
-                value={toAmount}
-                onChange={(e) => setToAmount(e.target.value)}
-                className="text-3xl font-bold h-16 border-none text-right pr-2"
-                placeholder="0.0"
-              />
+              <div className="text-3xl font-bold text-sm h-16 flex items-center justify-end pr-2 bg-muted/50 rounded-md text-muted-foreground">
+                {toAmount || "0.0"}
+              </div>
             </div>
-            <TokenDisplay symbol={toTokenSymbol} icon={toTokenIcon} />
+            <TokenDisplay symbol={toTokenSymbol} isUsdt={isTokenToUsdt} />
           </div>
 
           <div className="flex justify-between items-center text-sm">
-            <div className="text-muted-foreground">
-              {usdValue} <span className="text-red-400">{priceImpact}</span>
-            </div>
+            <div className="text-muted-foreground">{usdValue}</div>
             <span className="text-muted-foreground">Balance: {toBalance}</span>
           </div>
         </div>
