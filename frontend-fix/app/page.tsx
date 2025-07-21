@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatUnits } from "viem";
+import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import {
   Card,
@@ -81,6 +82,7 @@ interface CreateTokenResponse {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -648,42 +650,51 @@ export default function Home() {
                 </CardContent>
 
                 <CardFooter className="gap-2">
-                  {token.website && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openLink(token.website)}
-                    >
-                      <FaGlobe className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
-                  {token.twitter && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openLink(token.twitter)}
-                    >
-                      <FaTwitter className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
-                  {token.telegram && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openLink(token.telegram)}
-                    >
-                      <FaTelegramPlane className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
-                  {token.discord && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openLink(token.discord)}
-                    >
-                      <FaDiscord className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => router.push(`/token/${token.tokenAddress}`)}
+                    className="flex-1"
+                  >
+                    View Token
+                  </Button>
+                  <div className="flex gap-2">
+                    {token.website && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openLink(token.website)}
+                      >
+                        <FaGlobe className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                    {token.twitter && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openLink(token.twitter)}
+                      >
+                        <FaTwitter className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                    {token.telegram && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openLink(token.telegram)}
+                      >
+                        <FaTelegramPlane className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                    {token.discord && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openLink(token.discord)}
+                      >
+                        <FaDiscord className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                  </div>
                 </CardFooter>
               </Card>
             ))
