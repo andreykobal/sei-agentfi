@@ -8,6 +8,14 @@ import {
   CreateTokenCommand,
   type CreateTokenParams,
 } from "../commands/create-token.command";
+import {
+  BuyTokensCommand,
+  type BuyTokensParams,
+} from "../commands/buy-tokens.command";
+import {
+  SellTokensCommand,
+  type SellTokensParams,
+} from "../commands/sell-tokens.command";
 import { WalletService } from "./wallet.service";
 
 class OpenAIService {
@@ -241,6 +249,54 @@ class OpenAIService {
               },
             },
             required: [],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "buyTokens",
+          description:
+            "Execute a buy transaction for tokens using USDT. The user must specify how much USDT they want to spend (in human-readable format, not wei). Only call this after confirming the user wants to proceed with the purchase.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenAddress: {
+                type: "string",
+                description:
+                  "The contract address of the token to buy (optional if current token context is available)",
+              },
+              usdtAmount: {
+                type: "string",
+                description:
+                  "The amount of USDT to spend on buying tokens (in human-readable format, e.g., '10.5' for 10.5 USDT)",
+              },
+            },
+            required: ["usdtAmount"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "sellTokens",
+          description:
+            "Execute a sell transaction for tokens to receive USDT. The user must specify how many tokens they want to sell (in human-readable format, not wei). Only call this after confirming the user wants to proceed with the sale.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenAddress: {
+                type: "string",
+                description:
+                  "The contract address of the token to sell (optional if current token context is available)",
+              },
+              tokenAmount: {
+                type: "string",
+                description:
+                  "The amount of tokens to sell (in human-readable format, e.g., '100.5' for 100.5 tokens)",
+              },
+            },
+            required: ["tokenAmount"],
           },
         },
       },
@@ -579,6 +635,200 @@ class OpenAIService {
             });
           }
 
+        case "buyTokens":
+          if (!userEmail) {
+            return JSON.stringify({
+              success: false,
+              error: "User email is required to buy tokens",
+            });
+          }
+
+          console.log(`[DEBUG] Buying tokens for user: ${userEmail}`);
+          console.log(`[DEBUG] Buy parameters:`, args);
+
+          try {
+            // Get user from database
+            const user = await User.findOne({ email: userEmail });
+            if (!user || !user.walletAddress) {
+              return JSON.stringify({
+                success: false,
+                error: "User not found or no wallet address associated",
+              });
+            }
+
+            // Determine token address to buy
+            const tokenAddress = args.tokenAddress || currentTokenAddress;
+            if (!tokenAddress) {
+              return JSON.stringify({
+                success: false,
+                error:
+                  "Token address is required to buy tokens. Either provide tokenAddress parameter or use this function in a token context.",
+              });
+            }
+
+            // Get token details to get price
+            const tokenData = await TokenProjection.getTokenByAddress(
+              tokenAddress
+            );
+            if (!tokenData) {
+              return JSON.stringify({
+                success: false,
+                error: "Token not found",
+                tokenAddress,
+              });
+            }
+
+            // Validate USDT amount (keep in human-readable format)
+            const usdtAmountFloat = parseFloat(args.usdtAmount);
+            if (isNaN(usdtAmountFloat) || usdtAmountFloat <= 0) {
+              return JSON.stringify({
+                success: false,
+                error: "Invalid USDT amount specified.",
+              });
+            }
+
+            console.log(
+              `[DEBUG] Attempting to buy ${args.usdtAmount} USDT worth of tokens for token: ${tokenData.name}`
+            );
+
+            // Prepare buy tokens parameters (command handles wei conversion internally)
+            const buyParams: BuyTokensParams = {
+              tokenAddress: tokenAddress,
+              usdtAmount: args.usdtAmount, // Keep in human-readable format
+            };
+
+            // Execute buy transaction using BuyTokensCommand
+            const buyResult = await BuyTokensCommand.execute(
+              userEmail,
+              buyParams
+            );
+
+            if (buyResult.success) {
+              return JSON.stringify({
+                success: true,
+                message: `Tokens purchased successfully! Transaction hash: ${buyResult.transactionHash}`,
+                transactionHash: buyResult.transactionHash,
+                tokenAddress,
+                tokenData: tokenData,
+                usdtAmount: args.usdtAmount,
+              });
+            } else {
+              return JSON.stringify({
+                success: false,
+                error: buyResult.error || "Failed to purchase tokens",
+                transactionHash: buyResult.transactionHash,
+                tokenAddress,
+                tokenData: tokenData,
+                usdtAmount: args.usdtAmount,
+              });
+            }
+          } catch (error) {
+            console.error(`[ERROR] Error buying tokens:`, error);
+            return JSON.stringify({
+              success: false,
+              error: `Failed to purchase tokens: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            });
+          }
+
+        case "sellTokens":
+          if (!userEmail) {
+            return JSON.stringify({
+              success: false,
+              error: "User email is required to sell tokens",
+            });
+          }
+
+          console.log(`[DEBUG] Selling tokens for user: ${userEmail}`);
+          console.log(`[DEBUG] Sell parameters:`, args);
+
+          try {
+            // Get user from database
+            const user = await User.findOne({ email: userEmail });
+            if (!user || !user.walletAddress) {
+              return JSON.stringify({
+                success: false,
+                error: "User not found or no wallet address associated",
+              });
+            }
+
+            // Determine token address to sell
+            const tokenAddress = args.tokenAddress || currentTokenAddress;
+            if (!tokenAddress) {
+              return JSON.stringify({
+                success: false,
+                error:
+                  "Token address is required to sell tokens. Either provide tokenAddress parameter or use this function in a token context.",
+              });
+            }
+
+            // Get token details to get price
+            const tokenData = await TokenProjection.getTokenByAddress(
+              tokenAddress
+            );
+            if (!tokenData) {
+              return JSON.stringify({
+                success: false,
+                error: "Token not found",
+                tokenAddress,
+              });
+            }
+
+            // Validate token amount (keep in human-readable format)
+            const tokenAmountFloat = parseFloat(args.tokenAmount);
+            if (isNaN(tokenAmountFloat) || tokenAmountFloat <= 0) {
+              return JSON.stringify({
+                success: false,
+                error: "Invalid token amount specified.",
+              });
+            }
+
+            console.log(
+              `[DEBUG] Attempting to sell ${args.tokenAmount} tokens for token: ${tokenData.name}`
+            );
+
+            // Prepare sell tokens parameters (command handles wei conversion)
+            const sellParams: SellTokensParams = {
+              tokenAddress: tokenAddress,
+              tokenAmount: args.tokenAmount, // Keep in human-readable format
+            };
+
+            // Execute sell transaction using SellTokensCommand
+            const sellResult = await SellTokensCommand.execute(
+              userEmail,
+              sellParams
+            );
+
+            if (sellResult.success) {
+              return JSON.stringify({
+                success: true,
+                message: `Tokens sold successfully! Transaction hash: ${sellResult.transactionHash}`,
+                transactionHash: sellResult.transactionHash,
+                tokenAddress,
+                tokenData: tokenData,
+                tokenAmount: args.tokenAmount,
+              });
+            } else {
+              return JSON.stringify({
+                success: false,
+                error: sellResult.error || "Failed to sell tokens",
+                transactionHash: sellResult.transactionHash,
+                tokenAddress,
+                tokenData: tokenData,
+                tokenAmount: args.tokenAmount,
+              });
+            }
+          } catch (error) {
+            console.error(`[ERROR] Error selling tokens:`, error);
+            return JSON.stringify({
+              success: false,
+              error: `Failed to sell tokens: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            });
+          }
+
         default:
           const unknownResult = JSON.stringify({
             success: false,
@@ -617,6 +867,7 @@ Your role is to help users understand and interact with the platform by:
 3. Answering questions about specific tokens, creators, or recent activity
 4. Helping users understand token details like supply, social links, and creation info
 5. **Assisting users with creating new tokens on the platform**
+6. **Assisting users with buying and selling tokens on the platform**
 
 **Token Creation Process:**
 When a user wants to create a token, follow this process:
@@ -638,6 +889,28 @@ When a user wants to create a token, follow this process:
 - **Telegram**: Telegram group or channel URL
 - **Discord**: Discord server URL
 
+**Token Trading Process:**
+When a user wants to buy tokens:
+1. Check their USDT balance using getUserBalances()
+2. Inform them of their available USDT balance
+3. Ask how much USDT they want to spend
+4. Once confirmed, use buyTokens() tool to execute the purchase
+5. Provide transaction hash and confirmation
+
+When a user wants to sell tokens:
+1. Check their token balance using getUserTokenBalance()
+2. Inform them of their available token balance
+3. Ask how many tokens they want to sell
+4. Once confirmed, use sellTokens() tool to execute the sale
+5. Provide transaction hash and confirmation
+
+**Important Trading Notes:**
+- Always check balances before trading
+- Confirm amounts with users before executing trades
+- Use human-readable amounts (not wei) when asking users for input
+- The tools will automatically convert to wei for blockchain transactions
+- Always provide transaction hashes after successful trades
+
 You have access to the following tools:
 - getAllTokens(): Get all tokens on the platform
 - getTokensByCreator(creator): Get tokens by a specific creator address  
@@ -647,6 +920,8 @@ You have access to the following tools:
 - createToken(tokenData): Create a new token on the platform
 - getUserBalances(): Get the user's ETH and USDT balances (requires authentication)
 - getUserTokenBalance(tokenAddress): Get the user's balance for a specific token (uses current token context if no address provided)
+- buyTokens(tokenAddress, usdtAmount): Execute a buy transaction for tokens using USDT.
+- sellTokens(tokenAddress, tokenAmount): Execute a sell transaction for tokens to receive USDT.
 
 When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. When users ask about their balances or how many tokens they own, use the balance tools to get real-time data. Be helpful, informative, and clear in your responses.
 
