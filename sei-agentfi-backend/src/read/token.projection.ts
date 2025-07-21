@@ -1,4 +1,14 @@
-import { IToken, TokenCreatedEvent, Token } from "../models/token.model";
+import {
+  IToken,
+  TokenCreatedEvent,
+  Token,
+  ITokenPurchase,
+  TokenPurchaseEvent,
+  TokenPurchase,
+  ITokenSale,
+  TokenSaleEvent,
+  TokenSale,
+} from "../models/token.model";
 
 export class TokenProjection {
   static async handleTokenCreated(event: TokenCreatedEvent): Promise<void> {
@@ -36,6 +46,62 @@ export class TokenProjection {
       );
     } catch (error) {
       console.error("Error projecting token to MongoDB:", error);
+      throw error;
+    }
+  }
+
+  static async handleTokenPurchase(event: TokenPurchaseEvent): Promise<void> {
+    try {
+      const purchaseData = {
+        eventId: event.id,
+        wallet: event.wallet,
+        tokenAddress: event.tokenAddress,
+        amountIn: event.amountIn.toString(),
+        amountOut: event.amountOut.toString(),
+        priceBefore: event.priceBefore.toString(),
+        priceAfter: event.priceAfter.toString(),
+        timestamp: event.timestamp.toString(),
+        blockNumber: event.blockNumber.toString(),
+      };
+
+      // Create new purchase record
+      await TokenPurchase.create(purchaseData);
+
+      console.log(
+        `Token purchase projected to MongoDB: ${
+          event.wallet
+        } bought ${event.amountOut.toString()} tokens for ${event.amountIn.toString()} USDT`
+      );
+    } catch (error) {
+      console.error("Error projecting token purchase to MongoDB:", error);
+      throw error;
+    }
+  }
+
+  static async handleTokenSale(event: TokenSaleEvent): Promise<void> {
+    try {
+      const saleData = {
+        eventId: event.id,
+        wallet: event.wallet,
+        tokenAddress: event.tokenAddress,
+        amountIn: event.amountIn.toString(),
+        amountOut: event.amountOut.toString(),
+        priceBefore: event.priceBefore.toString(),
+        priceAfter: event.priceAfter.toString(),
+        timestamp: event.timestamp.toString(),
+        blockNumber: event.blockNumber.toString(),
+      };
+
+      // Create new sale record
+      await TokenSale.create(saleData);
+
+      console.log(
+        `Token sale projected to MongoDB: ${
+          event.wallet
+        } sold ${event.amountIn.toString()} tokens for ${event.amountOut.toString()} USDT`
+      );
+    } catch (error) {
+      console.error("Error projecting token sale to MongoDB:", error);
       throw error;
     }
   }

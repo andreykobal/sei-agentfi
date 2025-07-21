@@ -14,7 +14,7 @@ export default createConfig({
     BondingCurve: {
       chain: "sei",
       abi: BondingCurveAbi,
-      address: "0xA79c48f309eA5aAc68CC7197f7679db936030088",
+      address: "0x34F494c5FC1535Bc20DcECa39b6A590C743fc088",
       startBlock: 186342869,
     },
     PoolManager: {

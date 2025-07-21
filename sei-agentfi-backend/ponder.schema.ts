@@ -26,6 +26,50 @@ export const tokenCreated = onchainTable(
   })
 );
 
+// BondingCurve Events (TokenPurchase)
+export const tokenPurchase = onchainTable(
+  "token_purchase",
+  (t) => ({
+    id: t.text().primaryKey(),
+    wallet: t.hex().notNull(),
+    tokenAddress: t.hex().notNull(),
+    amountIn: t.bigint().notNull(), // USDT amount spent (wei)
+    amountOut: t.bigint().notNull(), // Tokens received (wei)
+    priceBefore: t.bigint().notNull(), // Token price before purchase (USDT per token in wei)
+    priceAfter: t.bigint().notNull(), // Token price after purchase (USDT per token in wei)
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+  }),
+  (table) => ({
+    walletIdx: index().on(table.wallet),
+    tokenAddressIdx: index().on(table.tokenAddress),
+    timestampIdx: index().on(table.timestamp),
+    walletTokenIdx: index().on(table.wallet, table.tokenAddress),
+  })
+);
+
+// BondingCurve Events (TokenSale)
+export const tokenSale = onchainTable(
+  "token_sale",
+  (t) => ({
+    id: t.text().primaryKey(),
+    wallet: t.hex().notNull(),
+    tokenAddress: t.hex().notNull(),
+    amountIn: t.bigint().notNull(), // Tokens sold (wei)
+    amountOut: t.bigint().notNull(), // USDT received (wei)
+    priceBefore: t.bigint().notNull(), // Token price before sale (USDT per token in wei)
+    priceAfter: t.bigint().notNull(), // Token price after sale (USDT per token in wei)
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+  }),
+  (table) => ({
+    walletIdx: index().on(table.wallet),
+    tokenAddressIdx: index().on(table.tokenAddress),
+    timestampIdx: index().on(table.timestamp),
+    walletTokenIdx: index().on(table.wallet, table.tokenAddress),
+  })
+);
+
 // PoolManager Events
 export const approval = onchainTable(
   "approval",

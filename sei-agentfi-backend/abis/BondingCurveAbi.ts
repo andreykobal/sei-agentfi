@@ -943,11 +943,6 @@ export const BondingCurveAbi = [
         internalType: "string"
       },
       {
-        name: "initialSupply",
-        type: "uint256",
-        internalType: "uint256"
-      },
-      {
         name: "description",
         type: "string",
         internalType: "string"
@@ -1470,6 +1465,92 @@ export const BondingCurveAbi = [
       },
       {
         name: "totalUsdtRaised",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: "event",
+    name: "TokenPurchase",
+    inputs: [
+      {
+        name: "wallet",
+        type: "address",
+        indexed: true,
+        internalType: "address"
+      },
+      {
+        name: "tokenAddress",
+        type: "address",
+        indexed: true,
+        internalType: "address"
+      },
+      {
+        name: "amountIn",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "amountOut",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "priceBefore",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "priceAfter",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: "event",
+    name: "TokenSale",
+    inputs: [
+      {
+        name: "wallet",
+        type: "address",
+        indexed: true,
+        internalType: "address"
+      },
+      {
+        name: "tokenAddress",
+        type: "address",
+        indexed: true,
+        internalType: "address"
+      },
+      {
+        name: "amountIn",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "amountOut",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "priceBefore",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256"
+      },
+      {
+        name: "priceAfter",
         type: "uint256",
         indexed: false,
         internalType: "uint256"

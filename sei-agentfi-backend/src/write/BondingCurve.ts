@@ -1,7 +1,12 @@
 import { ponder } from "ponder:registry";
-import { tokenCreated } from "ponder:schema";
+import { tokenCreated, tokenPurchase, tokenSale } from "ponder:schema";
 import { TokenProjection } from "../read/token.projection";
-import { TokenCreatedEvent, Token } from "../models/token.model";
+import {
+  TokenCreatedEvent,
+  TokenPurchaseEvent,
+  TokenSaleEvent,
+  Token,
+} from "../models/token.model";
 import { connectToMongoDB } from "../config/database";
 
 // Ensure MongoDB connection is established
@@ -54,6 +59,82 @@ ponder.on("BondingCurve:TokenCreated", async ({ event, context }) => {
     await TokenProjection.handleTokenCreated(tokenCreatedEvent);
   } catch (error) {
     console.error("Error in token projection:", error);
+    // Don't throw here to avoid breaking the indexer
+  }
+});
+
+ponder.on("BondingCurve:TokenPurchase", async ({ event, context }) => {
+  const eventArgs = event.args as any;
+
+  await context.db.insert(tokenPurchase).values({
+    id: event.id,
+    wallet: eventArgs.wallet,
+    tokenAddress: eventArgs.tokenAddress,
+    amountIn: eventArgs.amountIn,
+    amountOut: eventArgs.amountOut,
+    priceBefore: eventArgs.priceBefore,
+    priceAfter: eventArgs.priceAfter,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  });
+
+  // Send event to projection for read model after Ponder indexing
+  const tokenPurchaseEvent: TokenPurchaseEvent = {
+    id: event.id,
+    wallet: eventArgs.wallet,
+    tokenAddress: eventArgs.tokenAddress,
+    amountIn: eventArgs.amountIn,
+    amountOut: eventArgs.amountOut,
+    priceBefore: eventArgs.priceBefore,
+    priceAfter: eventArgs.priceAfter,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  };
+
+  console.log("Token purchase event:", tokenPurchaseEvent);
+
+  try {
+    await TokenProjection.handleTokenPurchase(tokenPurchaseEvent);
+  } catch (error) {
+    console.error("Error in token purchase projection:", error);
+    // Don't throw here to avoid breaking the indexer
+  }
+});
+
+ponder.on("BondingCurve:TokenSale", async ({ event, context }) => {
+  const eventArgs = event.args as any;
+
+  await context.db.insert(tokenSale).values({
+    id: event.id,
+    wallet: eventArgs.wallet,
+    tokenAddress: eventArgs.tokenAddress,
+    amountIn: eventArgs.amountIn,
+    amountOut: eventArgs.amountOut,
+    priceBefore: eventArgs.priceBefore,
+    priceAfter: eventArgs.priceAfter,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  });
+
+  // Send event to projection for read model after Ponder indexing
+  const tokenSaleEvent: TokenSaleEvent = {
+    id: event.id,
+    wallet: eventArgs.wallet,
+    tokenAddress: eventArgs.tokenAddress,
+    amountIn: eventArgs.amountIn,
+    amountOut: eventArgs.amountOut,
+    priceBefore: eventArgs.priceBefore,
+    priceAfter: eventArgs.priceAfter,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  };
+
+  console.log("Token sale event:", tokenSaleEvent);
+
+  try {
+    await TokenProjection.handleTokenSale(tokenSaleEvent);
+  } catch (error) {
+    console.error("Error in token sale projection:", error);
     // Don't throw here to avoid breaking the indexer
   }
 });

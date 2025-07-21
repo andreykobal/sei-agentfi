@@ -39,6 +39,58 @@ export interface TokenCreatedEvent {
   blockNumber: bigint;
 }
 
+export interface ITokenPurchase extends Document {
+  eventId: string;
+  wallet: string;
+  tokenAddress: string;
+  amountIn: string; // USDT amount spent (wei as string)
+  amountOut: string; // Tokens received (wei as string)
+  priceBefore: string; // Token price before purchase (wei as string)
+  priceAfter: string; // Token price after purchase (wei as string)
+  timestamp: string;
+  blockNumber: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TokenPurchaseEvent {
+  id: string;
+  wallet: string;
+  tokenAddress: string;
+  amountIn: bigint;
+  amountOut: bigint;
+  priceBefore: bigint;
+  priceAfter: bigint;
+  timestamp: bigint;
+  blockNumber: bigint;
+}
+
+export interface ITokenSale extends Document {
+  eventId: string;
+  wallet: string;
+  tokenAddress: string;
+  amountIn: string; // Tokens sold (wei as string)
+  amountOut: string; // USDT received (wei as string)
+  priceBefore: string; // Token price before sale (wei as string)
+  priceAfter: string; // Token price after sale (wei as string)
+  timestamp: string;
+  blockNumber: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TokenSaleEvent {
+  id: string;
+  wallet: string;
+  tokenAddress: string;
+  amountIn: bigint;
+  amountOut: bigint;
+  priceBefore: bigint;
+  priceAfter: bigint;
+  timestamp: bigint;
+  blockNumber: bigint;
+}
+
 const tokenSchema = new Schema<IToken>(
   {
     eventId: { type: String, required: true },
@@ -61,4 +113,46 @@ const tokenSchema = new Schema<IToken>(
   }
 );
 
+const tokenPurchaseSchema = new Schema<ITokenPurchase>(
+  {
+    eventId: { type: String, required: true, unique: true, index: true },
+    wallet: { type: String, required: true, index: true },
+    tokenAddress: { type: String, required: true, index: true },
+    amountIn: { type: String, required: true },
+    amountOut: { type: String, required: true },
+    priceBefore: { type: String, required: true },
+    priceAfter: { type: String, required: true },
+    timestamp: { type: String, required: true, index: true },
+    blockNumber: { type: String, required: true },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const tokenSaleSchema = new Schema<ITokenSale>(
+  {
+    eventId: { type: String, required: true, unique: true, index: true },
+    wallet: { type: String, required: true, index: true },
+    tokenAddress: { type: String, required: true, index: true },
+    amountIn: { type: String, required: true },
+    amountOut: { type: String, required: true },
+    priceBefore: { type: String, required: true },
+    priceAfter: { type: String, required: true },
+    timestamp: { type: String, required: true, index: true },
+    blockNumber: { type: String, required: true },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 export const Token = mongoose.model<IToken>("Token", tokenSchema);
+export const TokenPurchase = mongoose.model<ITokenPurchase>(
+  "TokenPurchase",
+  tokenPurchaseSchema
+);
+export const TokenSale = mongoose.model<ITokenSale>(
+  "TokenSale",
+  tokenSaleSchema
+);
