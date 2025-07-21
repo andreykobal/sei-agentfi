@@ -45,7 +45,7 @@ createToken.post("/", verifyJWT, async (c: any) => {
     });
 
     // Validate required fields
-    const requiredFields = ["name", "symbol", "initialSupply", "description"];
+    const requiredFields = ["name", "symbol", "description"];
     const missingFields = requiredFields.filter((field) => !body[field]);
 
     if (missingFields.length > 0) {
@@ -67,7 +67,7 @@ createToken.post("/", verifyJWT, async (c: any) => {
     const tokenParams: CreateTokenParams = {
       name: body.name.trim(),
       symbol: body.symbol.trim().toUpperCase(),
-      initialSupply: body.initialSupply.toString(),
+      initialSupply: body.initialSupply?.toString() || "0", // Default to 0 for bonding curve tokens
       description: body.description.trim(),
       image: body.image?.trim() || "",
       website: body.website?.trim() || "",
@@ -145,7 +145,7 @@ createToken.post("/validate", verifyJWT, async (c: any) => {
     const tokenParams: CreateTokenParams = {
       name: body.name?.trim() || "",
       symbol: body.symbol?.trim().toUpperCase() || "",
-      initialSupply: body.initialSupply?.toString() || "",
+      initialSupply: body.initialSupply?.toString() || "0", // Default to 0 for bonding curve tokens
       description: body.description?.trim() || "",
       image: body.image?.trim() || "",
       website: body.website?.trim() || "",

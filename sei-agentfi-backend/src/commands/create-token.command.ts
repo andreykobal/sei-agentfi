@@ -142,15 +142,15 @@ export class CreateTokenCommand {
       errors.push("Token description must be 500 characters or less");
     }
 
-    // Validate initial supply
+    // Validate initial supply (allow 0 for bonding curve tokens)
     if (!params.initialSupply || params.initialSupply.trim().length === 0) {
       errors.push("Initial supply is required");
     }
 
     try {
       const supply = BigInt(params.initialSupply);
-      if (supply <= 0n) {
-        errors.push("Initial supply must be greater than 0");
+      if (supply < 0n) {
+        errors.push("Initial supply cannot be negative");
       }
       // Check for reasonable upper bound (e.g., 1 trillion tokens with 18 decimals)
       const maxSupply = BigInt("1000000000000000000000000000000"); // 1T * 10^18

@@ -13,6 +13,17 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Plus, Loader2 } from "lucide-react";
 
 interface Token {
   _id: string;
@@ -42,32 +53,45 @@ interface ApiResponse {
   message: string;
 }
 
+interface CreateTokenForm {
+  name: string;
+  symbol: string;
+  description: string;
+  website: string;
+  twitter: string;
+  telegram: string;
+  discord: string;
+}
+
+interface CreateTokenResponse {
+  success: boolean;
+  data?: {
+    transactionHash: string;
+    tokenAddress?: string;
+    message: string;
+  };
+  error?: string;
+}
+
 export default function Home() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { get } = useApi();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<CreateTokenForm>({
+    name: "",
+    symbol: "",
+    description: "",
+    website: "",
+    twitter: "",
+    telegram: "",
+    discord: "",
+  });
+  const { get, post } = useApi();
 
   useEffect(() => {
-    const fetchTokens = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await get<ApiResponse>("/tokens");
-
-        if (response.data.success) {
-          setTokens(response.data.data);
-        } else {
-          setError("Failed to fetch tokens");
-        }
-      } catch (err: any) {
-        console.error("Error fetching tokens:", err);
-        setError(err.response?.data?.error || "Failed to fetch tokens");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTokens();
   }, [get]);
 
@@ -94,6 +118,113 @@ export default function Home() {
   const openLink = (url: string) => {
     if (url && url !== "") {
       window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      symbol: "",
+      description: "",
+      website: "",
+      twitter: "",
+      telegram: "",
+      discord: "",
+    });
+    setCreateError(null);
+  };
+
+  const fetchTokens = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await get<ApiResponse>("/tokens");
+
+      if (response.data.success) {
+        setTokens(response.data.data);
+      } else {
+        setError("Failed to fetch tokens");
+      }
+    } catch (err: any) {
+      console.error("Error fetching tokens:", err);
+      setError(err.response?.data?.error || "Failed to fetch tokens");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateToken = async () => {
+    if (!formData.name || !formData.symbol || !formData.description) {
+      setCreateError(
+        "Please fill in all required fields (Name, Symbol, Description)"
+      );
+      return;
+    }
+
+    // Basic validation
+    if (formData.symbol.length > 10) {
+      setCreateError("Symbol must be 10 characters or less");
+      return;
+    }
+
+    if (formData.name.length > 50) {
+      setCreateError("Name must be 50 characters or less");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setCreateError(null);
+
+      // Set initial supply to 0 (tokens are minted via bonding curve)
+      const initialSupplyWei = "0";
+
+      const tokenData = {
+        ...formData,
+        initialSupply: initialSupplyWei,
+        symbol: formData.symbol.toUpperCase(),
+      };
+
+      console.log("Creating token with data:", tokenData);
+
+      const response = await post<CreateTokenResponse>(
+        "/create-token",
+        tokenData
+      );
+
+      if (response.data.success) {
+        console.log("Token created successfully:", response.data);
+
+        // Close dialog and reset form
+        setIsCreateDialogOpen(false);
+        resetForm();
+
+        // Wait 500ms then refresh tokens
+        setTimeout(() => {
+          fetchTokens();
+        }, 500);
+      } else {
+        setCreateError(response.data.error || "Failed to create token");
+      }
+    } catch (err: any) {
+      console.error("Error creating token:", err);
+      setCreateError(
+        err.response?.data?.error ||
+          err.response?.data?.details ||
+          "Failed to create token"
+      );
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -174,18 +305,185 @@ export default function Home() {
         </div>
 
         {/* Tokens Grid */}
-        {tokens.length === 0 ? (
-          <Card className="w-full max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>No Tokens Found</CardTitle>
-              <CardDescription>
-                No tokens have been created yet on this network.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tokens.map((token) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Create Token Card */}
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer bg-muted/10 hover:bg-muted/20">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Plus className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                  <CardTitle className="text-lg text-muted-foreground mb-2">
+                    Create New Token
+                  </CardTitle>
+                  <CardDescription className="text-center">
+                    Launch your own AI agent token on Sei
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Token</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to create your AI agent token on the
+                  Sei network. Required fields are marked with *.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                {createError && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-md text-sm">
+                    {createError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium">
+                      Token Name *
+                    </label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="e.g., AI Agent"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="symbol" className="text-sm font-medium">
+                      Symbol *
+                    </label>
+                    <Input
+                      id="symbol"
+                      name="symbol"
+                      placeholder="e.g., AGT"
+                      value={formData.symbol}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      style={{ textTransform: "uppercase" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="description" className="text-sm font-medium">
+                    Description *
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    placeholder="Describe your AI agent token..."
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    maxLength={500}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    Social Links (Optional)
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="website" className="text-sm font-medium">
+                        Website
+                      </label>
+                      <Input
+                        id="website"
+                        name="website"
+                        placeholder="https://example.com"
+                        value={formData.website}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="twitter" className="text-sm font-medium">
+                        Twitter
+                      </label>
+                      <Input
+                        id="twitter"
+                        name="twitter"
+                        placeholder="https://twitter.com/..."
+                        value={formData.twitter}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="telegram" className="text-sm font-medium">
+                        Telegram
+                      </label>
+                      <Input
+                        id="telegram"
+                        name="telegram"
+                        placeholder="https://t.me/..."
+                        value={formData.telegram}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="discord" className="text-sm font-medium">
+                        Discord
+                      </label>
+                      <Input
+                        id="discord"
+                        name="discord"
+                        placeholder="https://discord.gg/..."
+                        value={formData.discord}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    resetForm();
+                  }}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateToken} disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Token...
+                    </>
+                  ) : (
+                    "Create Token"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Existing Tokens */}
+          {tokens.length === 0 && !loading ? (
+            <Card className="w-full col-span-full max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle>No Tokens Found</CardTitle>
+                <CardDescription>
+                  No tokens have been created yet. Be the first to create one!
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ) : (
+            tokens.map((token) => (
               <Card
                 key={token._id}
                 className="w-full hover:shadow-lg transition-shadow duration-200"
@@ -291,9 +589,9 @@ export default function Home() {
                   )}
                 </CardFooter>
               </Card>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
