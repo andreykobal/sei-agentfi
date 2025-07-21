@@ -69,6 +69,13 @@ export function FloatingChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Scroll to bottom every time chat is opened
+  useEffect(() => {
+    if (isExpanded) {
+      scrollToBottom();
+    }
+  }, [isExpanded]);
+
   // Load chat history when expanding chat (if authenticated)
   useEffect(() => {
     if (isExpanded && isAuthenticated && messages.length === 0) {
@@ -394,7 +401,11 @@ export function FloatingChat() {
     >
       {/* Expanded Chat */}
       {isExpanded && isAuthenticated && (
-        <Card className="mb-4 shadow-2xl border-2" data-chat-card>
+        <Card
+          className="mb-4 shadow-2xl border-2 backdrop-blur-xl
+"
+          data-chat-card
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -478,7 +489,7 @@ export function FloatingChat() {
       )}
 
       {/* Always visible input at bottom */}
-      <div className="bg-background border border-border rounded-lg shadow-lg mb-4">
+      <div className="bg-zinc-900/80 backdrop-blur-xl border border-border rounded-lg shadow-lg mb-4">
         <form onSubmit={sendMessage} className="flex items-center p-3">
           <Input
             ref={inputRef}

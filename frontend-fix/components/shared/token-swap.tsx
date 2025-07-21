@@ -530,7 +530,7 @@ export function TokenSwap({
         {/* Swap Button */}
         <Button
           size="lg"
-          className="w-full h-14 text-lg font-semibold bg-red-500 text-white hover:bg-red-600"
+          className="w-full h-14 text-lg font-semibold bg-purple-600 text-white hover:bg-purple-700"
           onClick={handleSwap}
           disabled={isLoading || !fromAmount || parseFloat(fromAmount) <= 0}
         >

@@ -435,15 +435,15 @@ export default function Home() {
           <h1 className="text-4xl font-bold text-foreground mb-2">
             Sei AgentFi
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-foreground">
             Discover and explore AI agents created on the Sei network
           </p>
           <div className="flex justify-between items-center mt-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground">
               {tokens.length} AI agent{tokens.length !== 1 ? "s" : ""} found
             </p>
             <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <ArrowUpDown className="h-4 w-4 text-foreground" />
               <Select
                 value={sortBy}
                 onValueChange={(value: SortOption) => setSortBy(value)}
@@ -470,7 +470,7 @@ export default function Home() {
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer bg-muted/10 hover:bg-muted/20">
+              <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-zinc-500 hover:border-muted-foreground/50 cursor-pointer big-zinc-900/80 hover:bg-zinc-900/70">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Plus className="w-12 h-12 text-muted-foreground/50 mb-4" />
                   <CardTitle className="text-lg text-muted-foreground mb-2">

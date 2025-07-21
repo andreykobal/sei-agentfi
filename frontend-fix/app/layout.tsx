@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { FloatingChat } from "@/components/shared/floating-chat";
+import Bubbles from "@/components/shared/bg";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Bubbles />
         <SidebarProvider>
           <AppSidebar />
           <main className="flex flex-1 flex-col">

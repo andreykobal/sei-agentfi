@@ -242,11 +242,11 @@ export default function TokenPage({ params }: TokenPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           {/* Loading Skeleton for Token Stats Cards */}
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="md:col-span-2 lg:col-span-2 bg-card rounded-lg p-6 border">
+            <div className="md:col-span-2 lg:col-span-2 bg-zinc-900/80 rounded-lg p-6 border">
               <div className="flex gap-4">
                 <Skeleton className="w-16 h-16 rounded-full" />
                 <div className="flex-1 space-y-2">
@@ -263,7 +263,7 @@ export default function TokenPage({ params }: TokenPageProps) {
               </div>
             </div>
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-card rounded-lg p-4 border">
+              <div key={i} className="bg-zinc-900/80 rounded-lg p-4 border">
                 <Skeleton className="h-4 w-20 mb-3" />
                 <Skeleton className="h-8 w-24 mb-1" />
                 <Skeleton className="h-4 w-16" />
@@ -286,7 +286,7 @@ export default function TokenPage({ params }: TokenPageProps) {
 
   if (error || !token) {
     return (
-      <div className="h-full bg-background flex items-center justify-center">
+      <div className="h-full flex items-center justify-center">
         <Card className="w-full max-w-md mx-auto">
           <CardHeader>
             <CardTitle className="text-destructive">Error</CardTitle>
@@ -308,12 +308,12 @@ export default function TokenPage({ params }: TokenPageProps) {
   }
 
   return (
-    <div className="h-full bg-background">
+    <div className="h-full">
       <div className="container mx-auto px-4 py-8 pb-32">
         {/* Token Stats Cards */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* First Card - Token Info (2x size) */}
-          <div className="md:col-span-2 lg:col-span-2 bg-card rounded-lg p-6 border">
+          <div className="md:col-span-2 lg:col-span-2 bg-zinc-900/80 rounded-lg p-6 border">
             <div className="flex gap-4">
               {/* Avatar */}
               <div className="flex-shrink-0">
@@ -399,7 +399,7 @@ export default function TokenPage({ params }: TokenPageProps) {
           </div>
 
           {/* Second Card - Address & Creator Info */}
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-zinc-900/80 rounded-lg p-4 border">
             <h3 className="text-sm font-medium text-muted-foreground mb-3">
               Contract Info
             </h3>
@@ -432,7 +432,7 @@ export default function TokenPage({ params }: TokenPageProps) {
           </div>
 
           {/* Third Card - Price */}
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-zinc-900/80 rounded-lg p-4 border">
             <h3 className="text-sm font-medium text-muted-foreground mb-1">
               Price
             </h3>
@@ -441,7 +441,7 @@ export default function TokenPage({ params }: TokenPageProps) {
           </div>
 
           {/* Fourth Card - Market Cap */}
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-zinc-900/80 rounded-lg p-4 border">
             <h3 className="text-sm font-medium text-muted-foreground mb-1">
               Market Cap
             </h3>
@@ -452,7 +452,7 @@ export default function TokenPage({ params }: TokenPageProps) {
           </div>
 
           {/* Fifth Card - Volume 24h */}
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-zinc-900/80 rounded-lg p-4 border">
             <h3 className="text-sm font-medium text-muted-foreground mb-1">
               24h Volume
             </h3>
