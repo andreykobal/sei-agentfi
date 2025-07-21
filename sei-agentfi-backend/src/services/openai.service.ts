@@ -3,6 +3,10 @@ import { OPENAI_API_KEY } from "../config/env.config";
 import { TokenProjection } from "../read/token.projection";
 import { Chat, IChatMessage } from "../models/chat.model";
 import { connectToMongoDB } from "../config/database";
+import {
+  CreateTokenCommand,
+  type CreateTokenParams,
+} from "../commands/create-token.command";
 
 class OpenAIService {
   private openai: OpenAI;
@@ -88,11 +92,115 @@ class OpenAIService {
           },
         },
       },
+      {
+        type: "function",
+        function: {
+          name: "collectTokenCreationData",
+          description:
+            "Collect structured data for creating a new token. Use this when the user wants to create a token and you need to gather all the required information.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "The name of the token (max 50 characters)",
+              },
+              symbol: {
+                type: "string",
+                description:
+                  "The ticker symbol for the token (max 10 characters, uppercase)",
+              },
+              description: {
+                type: "string",
+                description:
+                  "Description of the token and its purpose (max 500 characters)",
+              },
+              image: {
+                type: "string",
+                description: "URL for the token's image/logo (optional)",
+              },
+              website: {
+                type: "string",
+                description: "Official website URL (optional)",
+              },
+              twitter: {
+                type: "string",
+                description: "Twitter/X profile URL (optional)",
+              },
+              telegram: {
+                type: "string",
+                description: "Telegram group/channel URL (optional)",
+              },
+              discord: {
+                type: "string",
+                description: "Discord server URL (optional)",
+              },
+            },
+            required: ["name", "symbol", "description"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "createToken",
+          description:
+            "Create a new token on the Sei AgentFi platform using the bonding curve contract. Only call this after collecting all required token data.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenData: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                    description: "The name of the token",
+                  },
+                  symbol: {
+                    type: "string",
+                    description: "The ticker symbol for the token",
+                  },
+                  description: {
+                    type: "string",
+                    description: "Description of the token",
+                  },
+                  image: {
+                    type: "string",
+                    description: "URL for the token's image/logo",
+                  },
+                  website: {
+                    type: "string",
+                    description: "Official website URL",
+                  },
+                  twitter: {
+                    type: "string",
+                    description: "Twitter/X profile URL",
+                  },
+                  telegram: {
+                    type: "string",
+                    description: "Telegram group/channel URL",
+                  },
+                  discord: {
+                    type: "string",
+                    description: "Discord server URL",
+                  },
+                },
+                required: ["name", "symbol", "description"],
+              },
+            },
+            required: ["tokenData"],
+          },
+        },
+      },
     ];
   }
 
   // Execute tool functions
-  private async executeFunction(name: string, args: any): Promise<string> {
+  private async executeFunction(
+    name: string,
+    args: any,
+    userEmail?: string
+  ): Promise<string> {
     console.log(
       `[DEBUG] Executing function: ${name} with args:`,
       JSON.stringify(args)
@@ -199,6 +307,67 @@ class OpenAIService {
             })),
           });
 
+        case "collectTokenCreationData":
+          // This is a structured data collection tool - just return the collected data
+          return JSON.stringify({
+            success: true,
+            message: "Token data collected successfully",
+            tokenData: {
+              name: args.name,
+              symbol: args.symbol?.toUpperCase(),
+              description: args.description,
+              image: args.image || "",
+              website: args.website || "",
+              twitter: args.twitter || "",
+              telegram: args.telegram || "",
+              discord: args.discord || "",
+            },
+          });
+
+        case "createToken":
+          if (!userEmail) {
+            return JSON.stringify({
+              success: false,
+              error: "User email is required for token creation",
+            });
+          }
+
+          console.log(`[DEBUG] Creating token for user: ${userEmail}`);
+          console.log(`[DEBUG] Token data:`, args.tokenData);
+
+          // Prepare token creation parameters
+          const tokenParams: CreateTokenParams = {
+            name: args.tokenData.name.trim(),
+            symbol: args.tokenData.symbol.trim().toUpperCase(),
+            description: args.tokenData.description.trim(),
+            image: args.tokenData.image?.trim() || "",
+            website: args.tokenData.website?.trim() || "",
+            twitter: args.tokenData.twitter?.trim() || "",
+            telegram: args.tokenData.telegram?.trim() || "",
+            discord: args.tokenData.discord?.trim() || "",
+          };
+
+          // Execute token creation command
+          const createResult = await CreateTokenCommand.execute(
+            userEmail,
+            tokenParams
+          );
+
+          if (createResult.success) {
+            return JSON.stringify({
+              success: true,
+              message: "Token created successfully!",
+              transactionHash: createResult.transactionHash,
+              tokenAddress: createResult.tokenAddress,
+              tokenData: tokenParams,
+            });
+          } else {
+            return JSON.stringify({
+              success: false,
+              error: createResult.error || "Token creation failed",
+            });
+          }
+
         default:
           const unknownResult = JSON.stringify({
             success: false,
@@ -233,14 +402,37 @@ Your role is to help users understand and interact with the platform by:
 2. Explaining how the platform works
 3. Answering questions about specific tokens, creators, or recent activity
 4. Helping users understand token details like supply, social links, and creation info
+5. **Assisting users with creating new tokens on the platform**
+
+**Token Creation Process:**
+When a user wants to create a token, follow this process:
+1. Ask them for the required token information (name, symbol, description)
+2. Ask for optional information (image URL, website, social links)
+3. Use the "collectTokenCreationData" tool to structure their responses
+4. Once you have all the information, use the "createToken" tool to create the token
+5. Inform them about the transaction and provide the transaction hash
+
+**Required Token Information:**
+- **Name**: The full name of the token (max 50 characters)
+- **Symbol/Ticker**: Short identifier (max 10 characters, will be uppercased)
+- **Description**: What the token is for and its purpose (max 500 characters)
+
+**Optional Token Information:**
+- **Image**: URL to token logo/image
+- **Website**: Official website URL
+- **Twitter**: Twitter/X profile URL  
+- **Telegram**: Telegram group or channel URL
+- **Discord**: Discord server URL
 
 You have access to the following tools:
 - getAllTokens(): Get all tokens on the platform
 - getTokensByCreator(creator): Get tokens by a specific creator address  
 - getTokenByAddress(address): Get details about a specific token
 - getRecentTokens(limit): Get recently created tokens
+- collectTokenCreationData(...): Collect structured token creation data
+- createToken(tokenData): Create a new token on the platform
 
-When users ask about tokens, use these tools to provide accurate, up-to-date information. Be helpful, informative, and concise in your responses. If users ask about specific addresses or want to explore tokens, use the appropriate tools to fetch the data.
+When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. Be helpful, informative, and clear in your responses.
 
 Always format token information in a clear, readable way and include relevant details like names, symbols, descriptions, and social links when available.`;
   }
@@ -353,7 +545,7 @@ Always format token information in a clear, readable way and include relevant de
         const toolCallContent =
           assistantMessage.content && assistantMessage.content.trim().length > 0
             ? assistantMessage.content
-            : "Let me look that up for you...";
+            : "Let me help you with that...";
 
         const assistantMessageWithTools: IChatMessage = {
           role: "assistant",
@@ -382,7 +574,8 @@ Always format token information in a clear, readable way and include relevant de
 
             const functionResult = await this.executeFunction(
               toolCall.function.name,
-              JSON.parse(toolCall.function.arguments)
+              JSON.parse(toolCall.function.arguments),
+              userEmail
             );
 
             console.log(
