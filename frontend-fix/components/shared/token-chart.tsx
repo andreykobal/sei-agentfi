@@ -60,7 +60,7 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
       // Refresh if no specific token address provided, or if it matches our current token
       if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
         console.log(`[TOKEN CHART] Refreshing chart data for: ${tokenAddress}`);
-        fetchChartData();
+        fetchChartData(true); // Silent refresh to avoid blinking
       }
     };
 
@@ -76,9 +76,11 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
     };
   }, [tokenAddress]);
 
-  const fetchChartData = async () => {
+  const fetchChartData = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
 
       const response = await get<ChartApiResponse>(
@@ -94,13 +96,18 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
       console.error("Error fetching chart data:", err);
       setError("Failed to fetch chart data");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
-  // Create and update chart
+  // Create chart (only once)
   useEffect(() => {
     if (!chartContainerRef.current || loading) return;
+
+    // Only create chart if it doesn't exist
+    if (chartRef.current) return;
 
     // Create chart
     const chart = createChart(chartContainerRef.current, {
@@ -173,22 +180,6 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
       },
     });
 
-    // Set real chart data
-    if (chartData.length > 0) {
-      // Convert timestamps to the format expected by lightweight-charts
-      const formattedData = chartData.map((point) => ({
-        time: point.time as any, // Cast to any to satisfy the Time type
-        open: point.open,
-        high: point.high,
-        low: point.low,
-        close: point.close,
-      }));
-      candlestickSeries.setData(formattedData);
-    }
-
-    // Fit content to show all data
-    chart.timeScale().fitContent();
-
     // Store refs
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
@@ -213,7 +204,30 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
         candlestickSeriesRef.current = null;
       }
     };
-  }, [chartData, error]);
+  }, [loading]); // Only depend on loading, not chartData
+
+  // Update chart data silently (without recreating chart)
+  useEffect(() => {
+    if (!candlestickSeriesRef.current || !chartData.length || loading || error)
+      return;
+
+    // Convert timestamps to the format expected by lightweight-charts
+    const formattedData = chartData.map((point) => ({
+      time: point.time as any, // Cast to any to satisfy the Time type
+      open: point.open,
+      high: point.high,
+      low: point.low,
+      close: point.close,
+    }));
+
+    // Silently update the series data without recreating the chart
+    candlestickSeriesRef.current.setData(formattedData);
+
+    // Fit content to show all data
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
+  }, [chartData, loading, error]);
 
   if (loading) {
     return (

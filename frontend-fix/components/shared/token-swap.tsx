@@ -8,6 +8,7 @@ import { ArrowUpDown } from "lucide-react";
 import { formatUnits } from "viem";
 import { useUserStore } from "@/stores/userStore";
 import { useApi } from "@/hooks/useApi";
+import { useBalances } from "@/hooks/useBalances";
 import { toast } from "sonner";
 import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
@@ -38,8 +39,9 @@ export function TokenSwap({
   const [isTokenToUsdt, setIsTokenToUsdt] = useState(false); // true = token to USDT, false = USDT to token
   const [isLoading, setIsLoading] = useState(false); // Loading state for transactions
 
-  // Get USDT balance from user store
+  // Get USDT balance from user store and balances hook
   const { usdtBalance: usdtBalanceWei } = useUserStore();
+  const { fetchBalances } = useBalances();
 
   // Debug log when token prop changes
   useEffect(() => {
@@ -64,7 +66,10 @@ export function TokenSwap({
       // Refresh if no specific token address provided, or if it matches our current token
       if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
         console.log(`[TOKEN SWAP] Triggering refresh for: ${tokenAddress}`);
+        // Refresh token data
         onRefresh?.();
+        // Refresh user balances (USDT, ETH)
+        fetchBalances();
       }
     };
 
@@ -78,7 +83,7 @@ export function TokenSwap({
         handleRefreshTokenData
       );
     };
-  }, [tokenAddress, onRefresh]);
+  }, [tokenAddress, onRefresh, fetchBalances]);
 
   // API hook for making requests
   const { post } = useApi();
@@ -319,6 +324,7 @@ export function TokenSwap({
         // Wait 1 second then refresh data
         setTimeout(() => {
           onRefresh?.();
+          fetchBalances(); // Refresh user balances
           // Also emit event to refresh chart data
           chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {
             tokenAddress,
@@ -368,6 +374,7 @@ export function TokenSwap({
         // Wait 1 second then refresh data
         setTimeout(() => {
           onRefresh?.();
+          fetchBalances(); // Refresh user balances
           // Also emit event to refresh chart data
           chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {
             tokenAddress,

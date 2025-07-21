@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { useApi } from "@/hooks/useApi";
 import { useUserStore } from "@/stores/userStore";
 import { useBalances } from "@/hooks/useBalances";
+import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
 
 // Navigation items
 const items = [
@@ -108,6 +109,30 @@ export function AppSidebar() {
       }
     }
   }, [searchParams]); // Removed isAuthenticated dependency to prevent re-runs
+
+  // Listen for chat refresh events to update balances
+  useEffect(() => {
+    const handleRefreshTokenData = () => {
+      console.log(
+        "[SIDEBAR] Received refresh token data event from chat - refreshing balances"
+      );
+      // Only refresh balances if user is authenticated
+      if (isAuthenticated) {
+        fetchBalances();
+      }
+    };
+
+    // Register event listener
+    chatEventEmitter.on(CHAT_EVENTS.REFRESH_TOKEN_DATA, handleRefreshTokenData);
+
+    // Cleanup event listener on unmount
+    return () => {
+      chatEventEmitter.off(
+        CHAT_EVENTS.REFRESH_TOKEN_DATA,
+        handleRefreshTokenData
+      );
+    };
+  }, [isAuthenticated, fetchBalances]);
 
   const verifyMagicLinkToken = async (token: string) => {
     setVerifying(true);
