@@ -2,11 +2,13 @@ import OpenAI from "openai";
 import { OPENAI_API_KEY } from "../config/env.config";
 import { TokenProjection } from "../read/token.projection";
 import { Chat, IChatMessage } from "../models/chat.model";
+import { User } from "../models/user.model";
 import { connectToMongoDB } from "../config/database";
 import {
   CreateTokenCommand,
   type CreateTokenParams,
 } from "../commands/create-token.command";
+import { WalletService } from "./wallet.service";
 
 class OpenAIService {
   private openai: OpenAI;
@@ -16,6 +18,24 @@ class OpenAIService {
     this.openai = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });
+  }
+
+  // Helper function to format wei values to ETH with appropriate decimals
+  private formatTokenFinancials(token: any) {
+    const weiToEth = (weiValue: string): number => {
+      if (!weiValue || weiValue === "0") return 0;
+      return parseFloat(weiValue) / Math.pow(10, 18);
+    };
+
+    return {
+      ...token,
+      price: weiToEth(token.price || "0").toFixed(6),
+      marketCap: weiToEth(token.marketCap || "0").toFixed(2),
+      totalUsdtRaised: weiToEth(token.totalUsdtRaised || "0").toFixed(2),
+      volume24hBuy: weiToEth(token.volume24hBuy || "0").toFixed(2),
+      volume24hSell: weiToEth(token.volume24hSell || "0").toFixed(2),
+      volume24hTotal: weiToEth(token.volume24hTotal || "0").toFixed(2),
+    };
   }
 
   // Define available tools/functions for OpenAI
@@ -192,6 +212,38 @@ class OpenAIService {
           },
         },
       },
+      {
+        type: "function",
+        function: {
+          name: "getUserBalances",
+          description:
+            "Get the user's ETH and USDT balances. Requires the user to be authenticated and have a wallet address.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "getUserTokenBalance",
+          description:
+            "Get the user's balance for a specific token. If no token address is provided, uses the current token context if available.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenAddress: {
+                type: "string",
+                description:
+                  "The contract address of the token to check balance for (optional if current token context is available)",
+              },
+            },
+            required: [],
+          },
+        },
+      },
     ];
   }
 
@@ -199,7 +251,8 @@ class OpenAIService {
   private async executeFunction(
     name: string,
     args: any,
-    userEmail?: string
+    userEmail?: string,
+    currentTokenAddress?: string
   ): Promise<string> {
     console.log(
       `[DEBUG] Executing function: ${name} with args:`,
@@ -215,20 +268,30 @@ class OpenAIService {
           const getAllResult = JSON.stringify({
             success: true,
             count: limitedTokens.length,
-            tokens: limitedTokens.map((token) => ({
-              name: token.name,
-              symbol: token.symbol,
-              tokenAddress: token.tokenAddress,
-              creator: token.creator,
-              description: token.description,
-              image: token.image,
-              website: token.website,
-              twitter: token.twitter,
-              telegram: token.telegram,
-              discord: token.discord,
-              decimals: token.decimals,
-              createdAt: token.createdAt,
-            })),
+            tokens: limitedTokens.map((token) =>
+              this.formatTokenFinancials({
+                name: token.name,
+                symbol: token.symbol,
+                tokenAddress: token.tokenAddress,
+                creator: token.creator,
+                description: token.description,
+                image: token.image,
+                website: token.website,
+                twitter: token.twitter,
+                telegram: token.telegram,
+                discord: token.discord,
+                decimals: token.decimals,
+                price: token.price,
+                marketCap: token.marketCap,
+                totalUsdtRaised: token.totalUsdtRaised,
+                volume24hBuy: token.volume24hBuy,
+                volume24hSell: token.volume24hSell,
+                volume24hTotal: token.volume24hTotal,
+                timestamp: token.timestamp,
+                blockNumber: token.blockNumber,
+                createdAt: token.createdAt,
+              })
+            ),
           });
           console.log(
             `[DEBUG] getAllTokens result: ${limitedTokens.length} tokens, result length: ${getAllResult.length}`
@@ -243,19 +306,30 @@ class OpenAIService {
             success: true,
             count: creatorTokens.length,
             creator: args.creator,
-            tokens: creatorTokens.map((token) => ({
-              name: token.name,
-              symbol: token.symbol,
-              tokenAddress: token.tokenAddress,
-              description: token.description,
-              image: token.image,
-              website: token.website,
-              twitter: token.twitter,
-              telegram: token.telegram,
-              discord: token.discord,
-              decimals: token.decimals,
-              createdAt: token.createdAt,
-            })),
+            tokens: creatorTokens.map((token) =>
+              this.formatTokenFinancials({
+                name: token.name,
+                symbol: token.symbol,
+                tokenAddress: token.tokenAddress,
+                creator: token.creator,
+                description: token.description,
+                image: token.image,
+                website: token.website,
+                twitter: token.twitter,
+                telegram: token.telegram,
+                discord: token.discord,
+                decimals: token.decimals,
+                price: token.price,
+                marketCap: token.marketCap,
+                totalUsdtRaised: token.totalUsdtRaised,
+                volume24hBuy: token.volume24hBuy,
+                volume24hSell: token.volume24hSell,
+                volume24hTotal: token.volume24hTotal,
+                timestamp: token.timestamp,
+                blockNumber: token.blockNumber,
+                createdAt: token.createdAt,
+              })
+            ),
           });
 
         case "getTokenByAddress":
@@ -269,7 +343,7 @@ class OpenAIService {
           }
           return JSON.stringify({
             success: true,
-            token: {
+            token: this.formatTokenFinancials({
               name: token.name,
               symbol: token.symbol,
               tokenAddress: token.tokenAddress,
@@ -281,8 +355,16 @@ class OpenAIService {
               telegram: token.telegram,
               discord: token.discord,
               decimals: token.decimals,
+              price: token.price,
+              marketCap: token.marketCap,
+              totalUsdtRaised: token.totalUsdtRaised,
+              volume24hBuy: token.volume24hBuy,
+              volume24hSell: token.volume24hSell,
+              volume24hTotal: token.volume24hTotal,
+              timestamp: token.timestamp,
+              blockNumber: token.blockNumber,
               createdAt: token.createdAt,
-            },
+            }),
           });
 
         case "getRecentTokens":
@@ -291,20 +373,30 @@ class OpenAIService {
           return JSON.stringify({
             success: true,
             count: recentTokens.length,
-            tokens: recentTokens.map((token) => ({
-              name: token.name,
-              symbol: token.symbol,
-              tokenAddress: token.tokenAddress,
-              creator: token.creator,
-              description: token.description,
-              image: token.image,
-              website: token.website,
-              twitter: token.twitter,
-              telegram: token.telegram,
-              discord: token.discord,
-              decimals: token.decimals,
-              createdAt: token.createdAt,
-            })),
+            tokens: recentTokens.map((token) =>
+              this.formatTokenFinancials({
+                name: token.name,
+                symbol: token.symbol,
+                tokenAddress: token.tokenAddress,
+                creator: token.creator,
+                description: token.description,
+                image: token.image,
+                website: token.website,
+                twitter: token.twitter,
+                telegram: token.telegram,
+                discord: token.discord,
+                decimals: token.decimals,
+                price: token.price,
+                marketCap: token.marketCap,
+                totalUsdtRaised: token.totalUsdtRaised,
+                volume24hBuy: token.volume24hBuy,
+                volume24hSell: token.volume24hSell,
+                volume24hTotal: token.volume24hTotal,
+                timestamp: token.timestamp,
+                blockNumber: token.blockNumber,
+                createdAt: token.createdAt,
+              })
+            ),
           });
 
         case "collectTokenCreationData":
@@ -365,6 +457,125 @@ class OpenAIService {
             return JSON.stringify({
               success: false,
               error: createResult.error || "Token creation failed",
+            });
+          }
+
+        case "getUserBalances":
+          if (!userEmail) {
+            return JSON.stringify({
+              success: false,
+              error: "User email is required to get balances",
+            });
+          }
+
+          console.log(`[DEBUG] Getting balances for user: ${userEmail}`);
+
+          try {
+            // Get user from database
+            const user = await User.findOne({ email: userEmail });
+            if (!user || !user.walletAddress) {
+              return JSON.stringify({
+                success: false,
+                error: "User not found or no wallet address associated",
+              });
+            }
+
+            // Get balances using WalletService
+            const balances = await WalletService.getUserBalances(
+              user.walletAddress as `0x${string}`
+            );
+
+            // Format balances from wei to ETH
+            const weiToEth = (weiValue: string): number => {
+              if (!weiValue || weiValue === "0") return 0;
+              return parseFloat(weiValue) / Math.pow(10, 18);
+            };
+
+            const formattedBalances = {
+              ethBalance: weiToEth(balances.ethBalance).toFixed(6),
+              usdtBalance: weiToEth(balances.usdtBalance).toFixed(2),
+            };
+
+            console.log(`[DEBUG] User balances retrieved:`, formattedBalances);
+
+            return JSON.stringify({
+              success: true,
+              balances: formattedBalances,
+              walletAddress: user.walletAddress,
+            });
+          } catch (error) {
+            console.error(`[ERROR] Error getting user balances:`, error);
+            return JSON.stringify({
+              success: false,
+              error: "Failed to retrieve user balances",
+            });
+          }
+
+        case "getUserTokenBalance":
+          if (!userEmail) {
+            return JSON.stringify({
+              success: false,
+              error: "User email is required to get token balance",
+            });
+          }
+
+          console.log(`[DEBUG] Getting token balance for user: ${userEmail}`);
+
+          try {
+            // Get user from database
+            const user = await User.findOne({ email: userEmail });
+            if (!user || !user.walletAddress) {
+              return JSON.stringify({
+                success: false,
+                error: "User not found or no wallet address associated",
+              });
+            }
+
+            // Determine token address to check
+            const tokenAddress = args.tokenAddress || currentTokenAddress;
+            if (!tokenAddress) {
+              return JSON.stringify({
+                success: false,
+                error:
+                  "Token address is required. Either provide tokenAddress parameter or use this function in a token context.",
+              });
+            }
+
+            console.log(`[DEBUG] Checking token balance for:`, {
+              userWallet: user.walletAddress,
+              tokenAddress,
+            });
+
+            // Get token balance using WalletService
+            const tokenBalance = await WalletService.getTokenBalance(
+              user.walletAddress as `0x${string}`,
+              tokenAddress as `0x${string}`
+            );
+
+            // Format balance from wei to ETH
+            const weiToEth = (weiValue: string): number => {
+              if (!weiValue || weiValue === "0") return 0;
+              return parseFloat(weiValue) / Math.pow(10, 18);
+            };
+
+            const formattedBalance = weiToEth(tokenBalance).toFixed(6);
+
+            console.log(`[DEBUG] User token balance retrieved:`, {
+              tokenAddress,
+              balance: formattedBalance,
+            });
+
+            return JSON.stringify({
+              success: true,
+              tokenBalance: formattedBalance,
+              tokenAddress,
+              walletAddress: user.walletAddress,
+            });
+          } catch (error) {
+            console.error(`[ERROR] Error getting user token balance:`, error);
+            return JSON.stringify({
+              success: false,
+              error: "Failed to retrieve user token balance",
             });
           }
 
@@ -434,8 +645,15 @@ You have access to the following tools:
 - getRecentTokens(limit): Get recently created tokens
 - collectTokenCreationData(...): Collect structured token creation data
 - createToken(tokenData): Create a new token on the platform
+- getUserBalances(): Get the user's ETH and USDT balances (requires authentication)
+- getUserTokenBalance(tokenAddress): Get the user's balance for a specific token (uses current token context if no address provided)
 
-When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. Be helpful, informative, and clear in your responses.
+When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. When users ask about their balances or how many tokens they own, use the balance tools to get real-time data. Be helpful, informative, and clear in your responses.
+
+**Important Balance Display Instructions:**
+- When referring to ETH balance from getUserBalances(), always call it "SEI balance" instead of "ETH balance" since this platform runs on the Sei blockchain
+- Display SEI balance as "SEI" not "ETH"
+- USDT balance should still be called "USDT balance"
 
 Always format token information in a clear, readable way and include relevant details like names, symbols, descriptions, and social links when available.`;
 
@@ -636,7 +854,8 @@ When users ask questions like "what is this token?", "tell me about this token",
             const functionResult = await this.executeFunction(
               toolCall.function.name,
               JSON.parse(toolCall.function.arguments),
-              userEmail
+              userEmail,
+              currentTokenAddress
             );
 
             console.log(

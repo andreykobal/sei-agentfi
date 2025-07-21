@@ -319,6 +319,10 @@ export function TokenSwap({
         // Wait 1 second then refresh data
         setTimeout(() => {
           onRefresh?.();
+          // Also emit event to refresh chart data
+          chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {
+            tokenAddress,
+          });
         }, 1000);
       } else {
         toast.error(response.data.error || "Failed to purchase tokens");
@@ -364,6 +368,10 @@ export function TokenSwap({
         // Wait 1 second then refresh data
         setTimeout(() => {
           onRefresh?.();
+          // Also emit event to refresh chart data
+          chatEventEmitter.emit(CHAT_EVENTS.REFRESH_TOKEN_DATA, {
+            tokenAddress,
+          });
         }, 1000);
       } else {
         toast.error(response.data.error || "Failed to sell tokens");
