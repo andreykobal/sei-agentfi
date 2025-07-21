@@ -394,8 +394,11 @@ class OpenAIService {
   }
 
   // Get system prompt for the AI assistant
-  private getSystemPrompt(): string {
-    return `You are an AI assistant for Sei AgentFi, a decentralized platform for creating and trading tokens on the Sei blockchain. 
+  private getSystemPrompt(
+    currentTokenAddress?: string,
+    currentTokenData?: any
+  ): string {
+    let basePrompt = `You are an AI assistant for Sei AgentFi, a decentralized platform for creating and trading tokens on the Sei blockchain. 
 
 Your role is to help users understand and interact with the platform by:
 1. Providing information about tokens created on the platform
@@ -435,15 +438,70 @@ You have access to the following tools:
 When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. Be helpful, informative, and clear in your responses.
 
 Always format token information in a clear, readable way and include relevant details like names, symbols, descriptions, and social links when available.`;
+
+    // Add current token context if available
+    if (currentTokenAddress && currentTokenData) {
+      basePrompt += `
+
+**CURRENT CONTEXT:**
+The user is currently viewing the token page for: ${currentTokenData.name} (${
+        currentTokenData.symbol
+      })
+Token Address: ${currentTokenAddress}
+${
+  currentTokenData.description
+    ? `Description: ${currentTokenData.description}`
+    : ""
+}
+
+When users ask questions like "what is this token?", "tell me about this token", "what's the market cap?", etc., they are referring to this specific token. Use the getTokenByAddress tool with address "${currentTokenAddress}" to get the most up-to-date information about this token.`;
+    } else if (currentTokenAddress) {
+      basePrompt += `
+
+**CURRENT CONTEXT:**
+The user is currently viewing a token page for token address: ${currentTokenAddress}
+
+When users ask questions like "what is this token?", "tell me about this token", "what's the market cap?", etc., they are referring to this specific token. Use the getTokenByAddress tool with address "${currentTokenAddress}" to get the most up-to-date information about this token.`;
+    }
+
+    return basePrompt;
   }
 
   // Main chat method with tool calling
-  async chat(userEmail: string, message: string): Promise<string> {
+  async chat(
+    userEmail: string,
+    message: string,
+    currentTokenAddress?: string
+  ): Promise<string> {
     console.log(
       `[DEBUG] Starting chat for user: ${userEmail}, message: "${message}"`
     );
+
+    if (currentTokenAddress) {
+      console.log(`[DEBUG] Current token context: ${currentTokenAddress}`);
+    }
     try {
       await connectToMongoDB();
+
+      // Get current token data if token address is provided
+      let currentTokenData = null;
+      if (currentTokenAddress) {
+        try {
+          currentTokenData = await TokenProjection.getTokenByAddress(
+            currentTokenAddress
+          );
+          console.log(`[DEBUG] Current token data retrieved:`, {
+            name: currentTokenData?.name,
+            symbol: currentTokenData?.symbol,
+            hasData: !!currentTokenData,
+          });
+        } catch (error) {
+          console.log(
+            `[DEBUG] Could not retrieve token data for ${currentTokenAddress}:`,
+            error
+          );
+        }
+      }
 
       // Add user message to chat history
       const userMessage: IChatMessage = {
@@ -472,7 +530,10 @@ Always format token information in a clear, readable way and include relevant de
         [
           {
             role: "system",
-            content: this.getSystemPrompt(),
+            content: this.getSystemPrompt(
+              currentTokenAddress,
+              currentTokenData
+            ),
           },
           ...contextMessages.map((msg) => ({
             role: msg.role as any,
@@ -620,7 +681,10 @@ Always format token information in a clear, readable way and include relevant de
           [
             {
               role: "system",
-              content: this.getSystemPrompt(),
+              content: this.getSystemPrompt(
+                currentTokenAddress,
+                currentTokenData
+              ),
             },
             ...updatedContext.map((msg) => ({
               role: msg.role as any,

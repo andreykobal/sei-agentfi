@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from "react";
 import { formatUnits } from "viem";
 import { useApi } from "@/hooks/useApi";
+import { useChatStore } from "@/stores/chatStore";
 import { TokenChart } from "@/components/shared/token-chart";
 import { TokenSwap } from "@/components/shared/token-swap";
 import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
@@ -57,10 +58,31 @@ export default function TokenPage({ params }: TokenPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { get } = useApi();
+  const { setCurrentToken, clearCurrentToken } = useChatStore();
 
   useEffect(() => {
     fetchTokenData();
   }, [tokenAddress, get]);
+
+  // Set token context for chat when token data is available
+  useEffect(() => {
+    if (token) {
+      console.log(`[TOKEN PAGE] Setting chat context for token:`, {
+        address: tokenAddress,
+        name: token.name,
+        symbol: token.symbol,
+      });
+      setCurrentToken(tokenAddress, token.name, token.symbol);
+    }
+  }, [token, tokenAddress, setCurrentToken]);
+
+  // Clear token context when leaving the page
+  useEffect(() => {
+    return () => {
+      console.log(`[TOKEN PAGE] Clearing chat context on page unmount`);
+      clearCurrentToken();
+    };
+  }, [clearCurrentToken]);
 
   // Listen for chat refresh events
   useEffect(() => {
@@ -72,7 +94,7 @@ export default function TokenPage({ params }: TokenPageProps) {
       // Refresh if no specific token address provided, or if it matches our current token
       if (!data.tokenAddress || data.tokenAddress === tokenAddress) {
         console.log(`[TOKEN PAGE] Refreshing token data for: ${tokenAddress}`);
-        fetchTokenData();
+        fetchTokenData(true); // Silent refresh
       }
     };
 
@@ -88,9 +110,11 @@ export default function TokenPage({ params }: TokenPageProps) {
     };
   }, [tokenAddress]);
 
-  const fetchTokenData = async () => {
+  const fetchTokenData = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       console.log("🔍 [TokenPage] Fetching token data for:", tokenAddress);
 
@@ -121,7 +145,9 @@ export default function TokenPage({ params }: TokenPageProps) {
       console.error("❌ [TokenPage] Error fetching token:", err);
       setError(err.response?.data?.error || "Failed to fetch token data");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -462,7 +488,7 @@ export default function TokenPage({ params }: TokenPageProps) {
                     : null
                 }
                 className="w-full"
-                onRefresh={fetchTokenData}
+                onRefresh={() => fetchTokenData(true)}
               />
             </div>
           </div>

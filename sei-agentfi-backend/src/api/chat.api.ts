@@ -22,7 +22,7 @@ chat.post("/message", verifyJWT, async (c: any) => {
     .substr(2, 9)}`;
   try {
     const userEmail = c.get("userEmail") as string;
-    const { message } = await c.req.json();
+    const { message, currentTokenAddress } = await c.req.json();
 
     console.log(`[${requestId}] Chat request received from user: ${userEmail}`);
     console.log(
@@ -30,6 +30,12 @@ chat.post("/message", verifyJWT, async (c: any) => {
         message?.length || 0
       })`
     );
+
+    if (currentTokenAddress) {
+      console.log(
+        `[${requestId}] Current token context: ${currentTokenAddress}`
+      );
+    }
 
     if (
       !message ||
@@ -48,10 +54,11 @@ chat.post("/message", verifyJWT, async (c: any) => {
     }
 
     console.log(`[${requestId}] Calling OpenAI service...`);
-    // Call OpenAI service
+    // Call OpenAI service with optional token context
     const response = await openAIService.chat(
       userEmail as string,
-      message.trim()
+      message.trim(),
+      currentTokenAddress
     );
 
     console.log(

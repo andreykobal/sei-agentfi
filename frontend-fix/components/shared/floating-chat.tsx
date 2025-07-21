@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUserStore } from "@/stores/userStore";
+import { useChatStore } from "@/stores/chatStore";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -52,6 +53,8 @@ export function FloatingChat() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const { isAuthenticated, userEmail } = useUserStore();
+  const { currentTokenAddress, currentTokenName, currentTokenSymbol } =
+    useChatStore();
   const { post, get, delete: del } = useApi();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -154,6 +157,15 @@ export function FloatingChat() {
     const messageContent = message.trim();
     console.log(`[FRONTEND] Sending message: "${messageContent}"`);
 
+    // Log current token context
+    if (currentTokenAddress) {
+      console.log(`[FRONTEND] Current token context:`, {
+        address: currentTokenAddress,
+        name: currentTokenName,
+        symbol: currentTokenSymbol,
+      });
+    }
+
     const userMessage: ChatMessage = {
       role: "user",
       content: messageContent,
@@ -167,9 +179,14 @@ export function FloatingChat() {
 
     try {
       console.log(`[FRONTEND] Making POST request to /chat/message`);
-      const response = await post<ChatResponse>("/chat/message", {
+      const requestBody = {
         message: messageContent,
-      });
+        ...(currentTokenAddress && { currentTokenAddress }),
+      };
+
+      console.log(`[FRONTEND] Request body:`, requestBody);
+
+      const response = await post<ChatResponse>("/chat/message", requestBody);
 
       console.log(`[FRONTEND] Response received:`, {
         status: response.status,
