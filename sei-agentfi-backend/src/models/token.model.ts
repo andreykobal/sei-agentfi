@@ -17,6 +17,10 @@ export interface IToken extends Document {
   timestamp: string; // Store as string to handle bigint
   blockNumber: string; // Store as string to handle bigint
 
+  // Price and market data (stored as wei strings)
+  price: string; // Current token price in USDT (wei)
+  marketCap: string; // Market cap in USDT (wei) = price * 1 billion
+
   // Computed fields for API
   createdAt: Date;
   updatedAt: Date;
@@ -107,6 +111,8 @@ const tokenSchema = new Schema<IToken>(
     discord: { type: String, required: false },
     timestamp: { type: String, required: true, index: true },
     blockNumber: { type: String, required: true },
+    price: { type: String, required: false },
+    marketCap: { type: String, required: false },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

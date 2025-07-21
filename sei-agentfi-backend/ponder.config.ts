@@ -1,7 +1,11 @@
+import { config } from "dotenv";
 import { createConfig } from "ponder";
 
 import { PoolManagerAbi } from "./abis/PoolManagerAbi";
 import { BondingCurveAbi } from "./abis/BondingCurveAbi";
+
+// Load environment variables
+config();
 
 export default createConfig({
   chains: {

@@ -67,10 +67,27 @@ export class TokenProjection {
       // Create new purchase record
       await TokenPurchase.create(purchaseData);
 
+      // Update token price and market cap using priceAfter
+      const priceAfter = event.priceAfter.toString(); // Price in wei
+      const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
+      const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
+
+      await Token.findOneAndUpdate(
+        { tokenAddress: event.tokenAddress },
+        {
+          price: priceAfter,
+          marketCap: marketCap,
+        },
+        { new: true }
+      );
+
       console.log(
         `Token purchase projected to MongoDB: ${
           event.wallet
         } bought ${event.amountOut.toString()} tokens for ${event.amountIn.toString()} USDT`
+      );
+      console.log(
+        `Updated token price to ${priceAfter} wei and market cap to ${marketCap} wei`
       );
     } catch (error) {
       console.error("Error projecting token purchase to MongoDB:", error);
@@ -95,10 +112,27 @@ export class TokenProjection {
       // Create new sale record
       await TokenSale.create(saleData);
 
+      // Update token price and market cap using priceAfter
+      const priceAfter = event.priceAfter.toString(); // Price in wei
+      const totalSupply = BigInt("1000000000"); // 1 billion tokens (count, not wei)
+      const marketCap = (event.priceAfter * totalSupply).toString(); // Market cap in wei
+
+      await Token.findOneAndUpdate(
+        { tokenAddress: event.tokenAddress },
+        {
+          price: priceAfter,
+          marketCap: marketCap,
+        },
+        { new: true }
+      );
+
       console.log(
         `Token sale projected to MongoDB: ${
           event.wallet
         } sold ${event.amountIn.toString()} tokens for ${event.amountOut.toString()} USDT`
+      );
+      console.log(
+        `Updated token price to ${priceAfter} wei and market cap to ${marketCap} wei`
       );
     } catch (error) {
       console.error("Error projecting token sale to MongoDB:", error);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatUnits } from "viem";
 import { useApi } from "@/hooks/useApi";
 import {
   Card,
@@ -41,6 +42,8 @@ interface Token {
   discord: string;
   timestamp: string;
   blockNumber: string;
+  price?: string; // Token price in USDT (wei)
+  marketCap?: string; // Market cap in USDT (wei)
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +105,34 @@ export default function Home() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatPrice = (priceWei: string | undefined) => {
+    if (!priceWei || priceWei === "0") return "N/A";
+    try {
+      const price = parseFloat(formatUnits(BigInt(priceWei), 18)); // Convert wei to USDT
+      return `$${price.toFixed(6)}`; // Show 6 decimal places for price
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const formatMarketCap = (marketCapWei: string | undefined) => {
+    if (!marketCapWei || marketCapWei === "0") return "N/A";
+    try {
+      const marketCap = parseFloat(formatUnits(BigInt(marketCapWei), 18)); // Convert wei to USDT
+      if (marketCap >= 1e9) {
+        return `$${(marketCap / 1e9).toFixed(2)}B`;
+      } else if (marketCap >= 1e6) {
+        return `$${(marketCap / 1e6).toFixed(2)}M`;
+      } else if (marketCap >= 1e3) {
+        return `$${(marketCap / 1e3).toFixed(2)}K`;
+      } else {
+        return `$${marketCap.toFixed(2)}`;
+      }
+    } catch {
+      return "N/A";
+    }
   };
 
   const shortenAddress = (address: string) => {
@@ -525,6 +556,20 @@ export default function Home() {
                   )}
 
                   <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Price:</span>
+                      <span className="font-mono text-green-600">
+                        {formatPrice(token.price)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Market Cap:</span>
+                      <span className="font-mono text-blue-600">
+                        {formatMarketCap(token.marketCap)}
+                      </span>
+                    </div>
+
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Creator:</span>
                       <span className="font-mono">
