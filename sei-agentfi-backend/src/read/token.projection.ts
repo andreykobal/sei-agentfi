@@ -532,4 +532,68 @@ export class TokenProjection {
       throw error;
     }
   }
+
+  // Get recent transactions (buys and sells) for a token
+  static async getRecentTransactions(
+    tokenAddress: string,
+    limit: number = 100
+  ): Promise<
+    Array<{
+      type: "buy" | "sell";
+      wallet: string;
+      amountIn: string;
+      amountOut: string;
+      timestamp: string;
+      blockNumber: string;
+      eventId: string;
+    }>
+  > {
+    try {
+      // Get recent purchases
+      const purchases = await TokenPurchase.find({
+        tokenAddress: tokenAddress,
+      })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .lean();
+
+      // Get recent sales
+      const sales = await TokenSale.find({
+        tokenAddress: tokenAddress,
+      })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .lean();
+
+      // Combine and format transactions
+      const transactions = [
+        ...purchases.map((purchase) => ({
+          type: "buy" as const,
+          wallet: purchase.wallet,
+          amountIn: purchase.amountIn,
+          amountOut: purchase.amountOut,
+          timestamp: purchase.timestamp,
+          blockNumber: purchase.blockNumber,
+          eventId: purchase.eventId,
+        })),
+        ...sales.map((sale) => ({
+          type: "sell" as const,
+          wallet: sale.wallet,
+          amountIn: sale.amountIn,
+          amountOut: sale.amountOut,
+          timestamp: sale.timestamp,
+          blockNumber: sale.blockNumber,
+          eventId: sale.eventId,
+        })),
+      ];
+
+      // Sort by timestamp (most recent first) and limit
+      return transactions
+        .sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp))
+        .slice(0, limit);
+    } catch (error) {
+      console.error("Error getting recent transactions from MongoDB:", error);
+      throw error;
+    }
+  }
 }

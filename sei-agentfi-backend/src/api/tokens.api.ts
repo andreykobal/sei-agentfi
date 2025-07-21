@@ -143,9 +143,16 @@ tokens.get("/address/:address", async (c) => {
       // Continue without balance - user might not be authenticated
     }
 
+    // Get recent transactions for this token
+    const recentTransactions = await TokenProjection.getRecentTransactions(
+      address,
+      100
+    );
+
     const responseData = {
       ...token,
       userTokenBalance,
+      recentTransactions,
     };
 
     console.log("📤 [TokensAPI] Returning token data:", {
@@ -155,6 +162,7 @@ tokens.get("/address/:address", async (c) => {
       userTokenBalance,
       price: token.price,
       totalUsdtRaised: token.totalUsdtRaised,
+      transactionsCount: recentTransactions.length,
     });
 
     return c.json({
