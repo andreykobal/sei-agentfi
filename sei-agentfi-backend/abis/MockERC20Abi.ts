@@ -5,30 +5,30 @@ export const MockERC20Abi = [
       {
         name: "name",
         type: "string",
-        internalType: "string"
+        internalType: "string",
       },
       {
         name: "symbol",
         type: "string",
-        internalType: "string"
+        internalType: "string",
       },
       {
         name: "decimals_",
         type: "uint8",
-        internalType: "uint8"
+        internalType: "uint8",
       },
       {
         name: "initialSupply",
         type: "uint256",
-        internalType: "uint256"
+        internalType: "uint256",
       },
       {
         name: "to",
         type: "address",
-        internalType: "address"
-      }
+        internalType: "address",
+      },
     ],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -37,22 +37,22 @@ export const MockERC20Abi = [
       {
         name: "owner",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "spender",
         type: "address",
-        internalType: "address"
-      }
+        internalType: "address",
+      },
     ],
     outputs: [
       {
         name: "",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -61,22 +61,22 @@ export const MockERC20Abi = [
       {
         name: "spender",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "value",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
     outputs: [
       {
         name: "",
         type: "bool",
-        internalType: "bool"
-      }
+        internalType: "bool",
+      },
     ],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -85,17 +85,17 @@ export const MockERC20Abi = [
       {
         name: "account",
         type: "address",
-        internalType: "address"
-      }
+        internalType: "address",
+      },
     ],
     outputs: [
       {
         name: "",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -104,16 +104,16 @@ export const MockERC20Abi = [
       {
         name: "from",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "amount",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
     outputs: [],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -123,10 +123,10 @@ export const MockERC20Abi = [
       {
         name: "",
         type: "uint8",
-        internalType: "uint8"
-      }
+        internalType: "uint8",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -135,16 +135,16 @@ export const MockERC20Abi = [
       {
         name: "to",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "amount",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
     outputs: [],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -154,10 +154,10 @@ export const MockERC20Abi = [
       {
         name: "",
         type: "string",
-        internalType: "string"
-      }
+        internalType: "string",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -167,10 +167,10 @@ export const MockERC20Abi = [
       {
         name: "",
         type: "string",
-        internalType: "string"
-      }
+        internalType: "string",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -180,10 +180,10 @@ export const MockERC20Abi = [
       {
         name: "",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
-    stateMutability: "view"
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -192,22 +192,22 @@ export const MockERC20Abi = [
       {
         name: "to",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "value",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
     outputs: [
       {
         name: "",
         type: "bool",
-        internalType: "bool"
-      }
+        internalType: "bool",
+      },
     ],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -216,27 +216,27 @@ export const MockERC20Abi = [
       {
         name: "from",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "to",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "value",
         type: "uint256",
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
     outputs: [
       {
         name: "",
         type: "bool",
-        internalType: "bool"
-      }
+        internalType: "bool",
+      },
     ],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
   },
   {
     type: "event",
@@ -246,22 +246,22 @@ export const MockERC20Abi = [
         name: "owner",
         type: "address",
         indexed: true,
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "spender",
         type: "address",
         indexed: true,
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "value",
         type: "uint256",
         indexed: false,
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: "event",
@@ -271,22 +271,22 @@ export const MockERC20Abi = [
         name: "from",
         type: "address",
         indexed: true,
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "to",
         type: "address",
         indexed: true,
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "value",
         type: "uint256",
         indexed: false,
-        internalType: "uint256"
-      }
+        internalType: "uint256",
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: "error",
@@ -295,19 +295,19 @@ export const MockERC20Abi = [
       {
         name: "spender",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "allowance",
         type: "uint256",
-        internalType: "uint256"
+        internalType: "uint256",
       },
       {
         name: "needed",
         type: "uint256",
-        internalType: "uint256"
-      }
-    ]
+        internalType: "uint256",
+      },
+    ],
   },
   {
     type: "error",
@@ -316,19 +316,19 @@ export const MockERC20Abi = [
       {
         name: "sender",
         type: "address",
-        internalType: "address"
+        internalType: "address",
       },
       {
         name: "balance",
         type: "uint256",
-        internalType: "uint256"
+        internalType: "uint256",
       },
       {
         name: "needed",
         type: "uint256",
-        internalType: "uint256"
-      }
-    ]
+        internalType: "uint256",
+      },
+    ],
   },
   {
     type: "error",
@@ -337,9 +337,9 @@ export const MockERC20Abi = [
       {
         name: "approver",
         type: "address",
-        internalType: "address"
-      }
-    ]
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",
@@ -348,9 +348,9 @@ export const MockERC20Abi = [
       {
         name: "receiver",
         type: "address",
-        internalType: "address"
-      }
-    ]
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",
@@ -359,9 +359,9 @@ export const MockERC20Abi = [
       {
         name: "sender",
         type: "address",
-        internalType: "address"
-      }
-    ]
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",
@@ -370,8 +370,8 @@ export const MockERC20Abi = [
       {
         name: "spender",
         type: "address",
-        internalType: "address"
-      }
-    ]
-  }
+        internalType: "address",
+      },
+    ],
+  },
 ] as const;

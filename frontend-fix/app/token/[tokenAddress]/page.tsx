@@ -419,6 +419,7 @@ export default function TokenPage({ params }: TokenPageProps) {
                     : null
                 }
                 className="w-full"
+                onRefresh={fetchTokenData}
               />
             </div>
           </div>

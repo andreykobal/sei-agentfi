@@ -7,6 +7,8 @@ import auth from "./auth";
 import tokens from "./tokens.api";
 import chat from "./chat.api";
 import createToken from "./create-token.api";
+import buyTokens from "./buy-tokens.api";
+import sellTokens from "./sell-tokens.api";
 
 const app = new Hono();
 
@@ -33,6 +35,12 @@ app.route("/chat", chat);
 
 // Mount create-token routes
 app.route("/create-token", createToken);
+
+// Mount buy-tokens routes
+app.route("/buy-tokens", buyTokens);
+
+// Mount sell-tokens routes
+app.route("/sell-tokens", sellTokens);
 
 app.use("/sql/*", client({ db, schema }));
 

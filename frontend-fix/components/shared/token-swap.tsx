@@ -7,6 +7,8 @@ import { Input } from "../ui/input";
 import { ArrowUpDown } from "lucide-react";
 import { formatUnits } from "viem";
 import { useUserStore } from "@/stores/userStore";
+import { useApi } from "@/hooks/useApi";
+import { toast } from "sonner";
 
 interface Token {
   name: string;
@@ -21,15 +23,25 @@ interface TokenSwapProps {
   tokenAddress: string;
   token: Token | null;
   className?: string;
+  onRefresh?: () => void; // Callback to refresh token data after successful transactions
 }
 
-export function TokenSwap({ tokenAddress, token, className }: TokenSwapProps) {
+export function TokenSwap({
+  tokenAddress,
+  token,
+  className,
+  onRefresh,
+}: TokenSwapProps) {
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [isTokenToUsdt, setIsTokenToUsdt] = useState(false); // true = token to USDT, false = USDT to token
+  const [isLoading, setIsLoading] = useState(false); // Loading state for transactions
 
   // Get USDT balance from user store
   const { usdtBalance: usdtBalanceWei } = useUserStore();
+
+  // API hook for making requests
+  const { post } = useApi();
 
   // Format USDT balance from wei to readable format
   const formatUsdtBalance = () => {
@@ -203,6 +215,105 @@ export function TokenSwap({ tokenAddress, token, className }: TokenSwapProps) {
     setFromAmount(isTokenToUsdt ? tokenBalance : usdtBalance);
   };
 
+  // Buy tokens function
+  const handleBuyTokens = async () => {
+    if (!fromAmount || parseFloat(fromAmount) <= 0) {
+      toast.error("Please enter a valid USDT amount");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log("🛒 Buying tokens:", {
+        tokenAddress,
+        usdtAmount: fromAmount,
+      });
+
+      const response = await post("/buy-tokens", {
+        tokenAddress,
+        usdtAmount: fromAmount,
+      });
+
+      if (response.data.success) {
+        toast.success("Tokens purchased successfully!");
+        console.log(
+          "🛒 Purchase transaction hash:",
+          response.data.data.transactionHash
+        );
+
+        // Clear form
+        setFromAmount("");
+        setToAmount("");
+
+        // Wait 1 second then refresh data
+        setTimeout(() => {
+          onRefresh?.();
+        }, 1000);
+      } else {
+        toast.error(response.data.error || "Failed to purchase tokens");
+      }
+    } catch (error: any) {
+      console.error("🛒 Error purchasing tokens:", error);
+      toast.error(error.response?.data?.error || "Failed to purchase tokens");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sell tokens function
+  const handleSellTokens = async () => {
+    if (!fromAmount || parseFloat(fromAmount) <= 0) {
+      toast.error("Please enter a valid token amount");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log("💰 Selling tokens:", {
+        tokenAddress,
+        tokenAmount: fromAmount,
+      });
+
+      const response = await post("/sell-tokens", {
+        tokenAddress,
+        tokenAmount: fromAmount,
+      });
+
+      if (response.data.success) {
+        toast.success("Tokens sold successfully!");
+        console.log(
+          "💰 Sale transaction hash:",
+          response.data.data.transactionHash
+        );
+
+        // Clear form
+        setFromAmount("");
+        setToAmount("");
+
+        // Wait 1 second then refresh data
+        setTimeout(() => {
+          onRefresh?.();
+        }, 1000);
+      } else {
+        toast.error(response.data.error || "Failed to sell tokens");
+      }
+    } catch (error: any) {
+      console.error("💰 Error selling tokens:", error);
+      toast.error(error.response?.data?.error || "Failed to sell tokens");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle swap execution
+  const handleSwap = async () => {
+    if (isTokenToUsdt) {
+      await handleSellTokens();
+    } else {
+      await handleBuyTokens();
+    }
+  };
+
   const fromTokenSymbol = isTokenToUsdt ? tokenSymbol : "USDT";
   const toTokenSymbol = isTokenToUsdt ? "USDT" : tokenSymbol;
   const fromBalance = isTokenToUsdt ? tokenBalance : usdtBalance;
@@ -334,8 +445,14 @@ export function TokenSwap({ tokenAddress, token, className }: TokenSwapProps) {
         <Button
           size="lg"
           className="w-full h-14 text-lg font-semibold bg-red-500 text-white hover:bg-red-600"
+          onClick={handleSwap}
+          disabled={isLoading || !fromAmount || parseFloat(fromAmount) <= 0}
         >
-          Swap
+          {isLoading
+            ? "Processing..."
+            : isTokenToUsdt
+            ? "Sell Tokens"
+            : "Buy Tokens"}
         </Button>
       </div>
     </Card>
