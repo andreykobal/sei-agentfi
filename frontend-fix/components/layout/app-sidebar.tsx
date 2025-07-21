@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import {
   Rocket,
   TrendingUp,
@@ -46,19 +46,20 @@ const items = [
     icon: Rocket,
   },
   {
-    title: "Portfolio",
-    url: "/portfolio",
+    title: "Trade",
+    url: "/trade",
     icon: TrendingUp,
   },
-  {
-    title: "Insights",
-    url: "/insights",
-    icon: BarChart3,
-  },
+  // {
+  //   title: "Insights",
+  //   url: "/insights",
+  //   icon: BarChart3,
+  // },
 ];
 
 export function AppSidebar() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const api = useApi();
 
   // Zustand store
@@ -261,16 +262,33 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                let isActive = pathname === item.url;
+
+                // Special case for Trade: also active on /token paths
+                if (item.url === "/trade") {
+                  isActive =
+                    pathname === "/trade" || pathname.startsWith("/token");
+                }
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <a
+                        href={item.url}
+                        className={
+                          isActive
+                            ? "bg-zinc-900/50 dark:bg-zinc-900/50 text-sidebar-accent-foreground font-medium"
+                            : ""
+                        }
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -300,7 +318,7 @@ export function AppSidebar() {
                     {/* Balance Display */}
                     <div className="px-3 py-2 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-foreground">
                           SEI Balance:
                         </span>
                         <div className="flex items-center gap-1">
@@ -313,7 +331,7 @@ export function AppSidebar() {
                           )}
                           <button
                             onClick={fetchBalances}
-                            className="text-xs text-muted-foreground hover:text-foreground"
+                            className="text-xs text-foreground hover:text-foreground"
                             title="Refresh balance"
                           >
                             ↻
@@ -321,7 +339,7 @@ export function AppSidebar() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-foreground">
                           USDT Balance:
                         </span>
                         <div className="flex items-center gap-1">
@@ -334,7 +352,7 @@ export function AppSidebar() {
                           )}
                           <button
                             onClick={fetchBalances}
-                            className="text-xs text-muted-foreground hover:text-foreground"
+                            className="text-xs text-foreground hover:text-foreground"
                             title="Refresh balance"
                           >
                             ↻

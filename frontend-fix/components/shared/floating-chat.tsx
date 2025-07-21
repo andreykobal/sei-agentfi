@@ -396,7 +396,7 @@ export function FloatingChat() {
 
   return (
     <div
-      className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-2xl px-4"
+      className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-3xl px-4"
       data-chat-container
     >
       {/* Expanded Chat */}
@@ -490,7 +490,7 @@ export function FloatingChat() {
 
       {/* Always visible input at bottom */}
       <div className="bg-zinc-900/80 backdrop-blur-xl border border-border rounded-lg shadow-lg mb-4">
-        <form onSubmit={sendMessage} className="flex items-center p-3">
+        <form onSubmit={sendMessage} className="flex items-center p-6">
           <Input
             ref={inputRef}
             value={message}

@@ -119,7 +119,7 @@ export default function Home() {
   useEffect(() => {
     const handleRefreshTokens = () => {
       console.log(`[HOME PAGE] Received refresh tokens event from chat`);
-      fetchTokens();
+      fetchTokens(true); // Silent refresh
     };
 
     // Register event listener
@@ -241,9 +241,11 @@ export default function Home() {
     setCreateError(null);
   };
 
-  const fetchTokens = async () => {
+  const fetchTokens = async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       const response = await get<ApiResponse>("/tokens");
 
@@ -256,7 +258,9 @@ export default function Home() {
       console.error("Error fetching tokens:", err);
       setError(err.response?.data?.error || "Failed to fetch tokens");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 

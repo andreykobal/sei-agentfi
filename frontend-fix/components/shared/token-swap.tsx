@@ -481,9 +481,9 @@ export function TokenSwap({
                 variant="ghost"
                 size="sm"
                 onClick={handleMaxClick}
-                className="h-6 px-2 text-xs text-red-500 hover:text-red-400"
+                className="h-6 px-2 text-xs text-foreground hover:text-muted-foreground"
               >
-                Max
+                MAX
               </Button>
             </div>
           </div>
