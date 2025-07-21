@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2 } from "lucide-react";
+import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
+import { toast } from "sonner";
 
 interface Token {
   _id: string;
@@ -137,6 +139,27 @@ export default function Home() {
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Copy functions for addresses
+  const handleCopyCreatorAddress = async (creatorAddress: string) => {
+    try {
+      await navigator.clipboard.writeText(creatorAddress);
+      toast.success("Creator address copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy creator address:", error);
+      toast.error("Failed to copy creator address");
+    }
+  };
+
+  const handleCopyContractAddress = async (contractAddress: string) => {
+    try {
+      await navigator.clipboard.writeText(contractAddress);
+      toast.success("Contract address copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy contract address:", error);
+      toast.error("Failed to copy contract address");
+    }
   };
 
   const openLink = (url: string) => {
@@ -572,16 +595,26 @@ export default function Home() {
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Creator:</span>
-                      <span className="font-mono">
+                      <button
+                        onClick={() => handleCopyCreatorAddress(token.creator)}
+                        className="font-mono hover:bg-muted/50 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                        title="Click to copy address"
+                      >
                         {shortenAddress(token.creator)}
-                      </span>
+                      </button>
                     </div>
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Contract:</span>
-                      <span className="font-mono">
+                      <button
+                        onClick={() =>
+                          handleCopyContractAddress(token.tokenAddress)
+                        }
+                        className="font-mono hover:bg-muted/50 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                        title="Click to copy address"
+                      >
                         {shortenAddress(token.tokenAddress)}
-                      </span>
+                      </button>
                     </div>
                   </div>
                 </CardContent>
@@ -593,7 +626,7 @@ export default function Home() {
                       variant="outline"
                       onClick={() => openLink(token.website)}
                     >
-                      Website
+                      <FaGlobe className="h-4 w-4 text-white" />
                     </Button>
                   )}
                   {token.twitter && (
@@ -602,7 +635,7 @@ export default function Home() {
                       variant="outline"
                       onClick={() => openLink(token.twitter)}
                     >
-                      Twitter
+                      <FaTwitter className="h-4 w-4 text-white" />
                     </Button>
                   )}
                   {token.telegram && (
@@ -611,7 +644,16 @@ export default function Home() {
                       variant="outline"
                       onClick={() => openLink(token.telegram)}
                     >
-                      Telegram
+                      <FaTelegramPlane className="h-4 w-4 text-white" />
+                    </Button>
+                  )}
+                  {token.discord && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openLink(token.discord)}
+                    >
+                      <FaDiscord className="h-4 w-4 text-white" />
                     </Button>
                   )}
                 </CardFooter>

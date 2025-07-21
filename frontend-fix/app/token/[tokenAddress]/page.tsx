@@ -1,5 +1,11 @@
+"use client";
+
+import { use } from "react";
 import { TokenChart } from "@/components/shared/token-chart";
 import { TokenSwap } from "@/components/shared/token-swap";
+import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface TokenPageProps {
   params: Promise<{
@@ -7,8 +13,35 @@ interface TokenPageProps {
   }>;
 }
 
-export default async function TokenPage({ params }: TokenPageProps) {
-  const { tokenAddress } = await params;
+export default function TokenPage({ params }: TokenPageProps) {
+  const { tokenAddress } = use(params);
+
+  // Helper function to shorten address like on home page
+  const shortenAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Copy functions
+  const handleCopyTokenAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(tokenAddress);
+      toast.success("Token address copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy token address:", error);
+      toast.error("Failed to copy token address");
+    }
+  };
+
+  const handleCopyCreatorAddress = async () => {
+    const creatorAddress = "0x1234567890abcdef1234567890abcdef12345678";
+    try {
+      await navigator.clipboard.writeText(creatorAddress);
+      toast.success("Creator address copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy creator address:", error);
+      toast.error("Failed to copy creator address");
+    }
+  };
 
   return (
     <div className="h-full bg-background">
@@ -28,7 +61,9 @@ export default async function TokenPage({ params }: TokenPageProps) {
               {/* Token Details */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-xl font-bold mb-1">RocketCoin</h3>
-                <p className="text-sm text-muted-foreground mb-1">$ROCKET</p>
+                <p className="text-sm text-muted-foreground font-mono mb-1">
+                  $ROCKET
+                </p>
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                   The next-generation meme token taking crypto to the moon with
                   innovative DeFi features.
@@ -36,24 +71,18 @@ export default async function TokenPage({ params }: TokenPageProps) {
 
                 {/* Socials */}
                 <div className="flex gap-2">
-                  <a
-                    href="#"
-                    className="text-xs bg-muted px-2 py-1 rounded hover:bg-muted/80"
-                  >
-                    🌐 Website
-                  </a>
-                  <a
-                    href="#"
-                    className="text-xs bg-muted px-2 py-1 rounded hover:bg-muted/80"
-                  >
-                    🐦 Twitter
-                  </a>
-                  <a
-                    href="#"
-                    className="text-xs bg-muted px-2 py-1 rounded hover:bg-muted/80"
-                  >
-                    💬 Telegram
-                  </a>
+                  <Button size="sm" variant="outline" className="p-2">
+                    <FaGlobe className="w-4 h-4 text-white" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="p-2">
+                    <FaTwitter className="w-4 h-4 text-white" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="p-2">
+                    <FaTelegramPlane className="w-4 h-4 text-white" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="p-2">
+                    <FaDiscord className="w-4 h-4 text-white" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -67,13 +96,23 @@ export default async function TokenPage({ params }: TokenPageProps) {
             <div className="space-y-2">
               <div>
                 <p className="text-xs text-muted-foreground">Address</p>
-                <p className="text-sm font-mono break-all">
-                  {tokenAddress.slice(0, 8)}...{tokenAddress.slice(-6)}
-                </p>
+                <button
+                  onClick={handleCopyTokenAddress}
+                  className="text-sm font-mono hover:bg-muted/50 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                  title="Click to copy address"
+                >
+                  {shortenAddress(tokenAddress)}
+                </button>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Creator</p>
-                <p className="text-sm font-mono">0x1234...5678</p>
+                <button
+                  onClick={handleCopyCreatorAddress}
+                  className="text-sm font-mono hover:bg-muted/50 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                  title="Click to copy address"
+                >
+                  {shortenAddress("0x1234567890abcdef1234567890abcdef12345678")}
+                </button>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Created</p>
@@ -127,14 +166,4 @@ export default async function TokenPage({ params }: TokenPageProps) {
       </div>
     </div>
   );
-}
-
-// Generate metadata for the page
-export async function generateMetadata({ params }: TokenPageProps) {
-  const { tokenAddress } = await params;
-
-  return {
-    title: `Token ${tokenAddress.slice(0, 8)}... | Sei AgentFi`,
-    description: `View detailed information and trade token ${tokenAddress}`,
-  };
 }
