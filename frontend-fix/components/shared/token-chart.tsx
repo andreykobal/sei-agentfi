@@ -168,11 +168,11 @@ export function TokenChart({ tokenAddress, className }: TokenChartProps) {
 
     // Add candlestick series
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#26a69a",
-      downColor: "#ef5350",
+      upColor: "#22c55e",
+      downColor: "#ef4444",
       borderVisible: false,
-      wickUpColor: "#26a69a",
-      wickDownColor: "#ef5350",
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
       priceFormat: {
         type: "price",
         precision: 6,
