@@ -17,6 +17,7 @@ import {
   type SellTokensParams,
 } from "../commands/sell-tokens.command";
 import { WalletService } from "./wallet.service";
+import { PLATFORM_KNOWLEDGE_BASE } from "../config/knowledge-base";
 
 class OpenAIService {
   private openai: OpenAI;
@@ -225,7 +226,7 @@ class OpenAIService {
         function: {
           name: "getUserBalances",
           description:
-            "Get the user's ETH and USDT balances. Requires the user to be authenticated and have a wallet address.",
+            "Get the user's complete balance information including SEI (ETH), USDT, and all token balances from tokens created on the platform. Only returns tokens with non-zero balances. Requires the user to be authenticated and have a wallet address.",
           parameters: {
             type: "object",
             properties: {},
@@ -297,6 +298,62 @@ class OpenAIService {
               },
             },
             required: ["tokenAmount"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "getTokenHolders",
+          description:
+            "Get the top token holders for a specific token, showing their wallet addresses, token balances, and percentage of total supply. If no token address is provided, uses the current token context if available.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenAddress: {
+                type: "string",
+                description:
+                  "The contract address of the token to get holders for (optional if current token context is available)",
+              },
+            },
+            required: [],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "getTokenTransactions",
+          description:
+            "Get recent transaction history (buys and sells) for a specific token. Shows who bought/sold, amounts, and timestamps. If no token address is provided, uses the current token context if available.",
+          parameters: {
+            type: "object",
+            properties: {
+              tokenAddress: {
+                type: "string",
+                description:
+                  "The contract address of the token to get transactions for (optional if current token context is available)",
+              },
+              limit: {
+                type: "number",
+                description:
+                  "Maximum number of transactions to return (default: 50, max: 100)",
+              },
+            },
+            required: [],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "getPlatformKnowledge",
+          description:
+            "Get comprehensive information about the SEI AgentFi platform including its mission, features, technology stack, and how it works. Use this when users ask about the platform, what AgentFi is, how it works, or want to learn more about the project. Always returns the complete knowledge base.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: [],
           },
         },
       },
@@ -502,18 +559,26 @@ class OpenAIService {
           );
 
           if (createResult.success) {
+            const explorerLink = `https://testnet.seistream.app/transactions/${createResult.transactionHash}`;
             return JSON.stringify({
               success: true,
               message: "Token created successfully!",
               transactionHash: createResult.transactionHash,
+              explorerLink: explorerLink,
               tokenAddress: createResult.tokenAddress,
               tokenData: tokenParams,
             });
           } else {
-            return JSON.stringify({
+            const response: any = {
               success: false,
               error: createResult.error || "Token creation failed",
-            });
+            };
+            // Include explorer link if transaction hash is available even on failure
+            if (createResult.transactionHash) {
+              response.transactionHash = createResult.transactionHash;
+              response.explorerLink = `https://testnet.seistream.app/transactions/${createResult.transactionHash}`;
+            }
+            return JSON.stringify(response);
           }
 
         case "getUserBalances":
@@ -536,15 +601,25 @@ class OpenAIService {
               });
             }
 
-            // Get balances using WalletService
+            // Get basic balances using WalletService
             const balances = await WalletService.getUserBalances(
               user.walletAddress as `0x${string}`
             );
 
-            // Format balances from wei to ETH
+            // Get all token balances
+            const tokenBalances = await WalletService.getAllTokenBalances(
+              user.walletAddress as `0x${string}`
+            );
+
+            // Format balances from wei to ETH/tokens
             const weiToEth = (weiValue: string): number => {
               if (!weiValue || weiValue === "0") return 0;
               return parseFloat(weiValue) / Math.pow(10, 18);
+            };
+
+            const weiToToken = (weiValue: string, decimals: number): number => {
+              if (!weiValue || weiValue === "0") return 0;
+              return parseFloat(weiValue) / Math.pow(10, decimals);
             };
 
             const formattedBalances = {
@@ -552,12 +627,26 @@ class OpenAIService {
               usdtBalance: weiToEth(balances.usdtBalance).toFixed(2),
             };
 
-            console.log(`[DEBUG] User balances retrieved:`, formattedBalances);
+            // Format token balances
+            const formattedTokenBalances = tokenBalances.map((token) => ({
+              tokenAddress: token.tokenAddress,
+              name: token.name,
+              symbol: token.symbol,
+              balance: weiToToken(token.balance, token.decimals).toFixed(6),
+              decimals: token.decimals,
+            }));
+
+            console.log(`[DEBUG] User balances retrieved:`, {
+              ...formattedBalances,
+              tokenCount: formattedTokenBalances.length,
+            });
 
             return JSON.stringify({
               success: true,
               balances: formattedBalances,
+              tokenBalances: formattedTokenBalances,
               walletAddress: user.walletAddress,
+              message: `Retrieved balances for ${formattedTokenBalances.length} tokens with non-zero balances`,
             });
           } catch (error) {
             console.error(`[ERROR] Error getting user balances:`, error);
@@ -704,23 +793,30 @@ class OpenAIService {
             );
 
             if (buyResult.success) {
+              const explorerLink = `https://testnet.seistream.app/transactions/${buyResult.transactionHash}`;
               return JSON.stringify({
                 success: true,
                 message: `Tokens purchased successfully! Transaction hash: ${buyResult.transactionHash}`,
                 transactionHash: buyResult.transactionHash,
+                explorerLink: explorerLink,
                 tokenAddress,
                 tokenData: tokenData,
                 usdtAmount: args.usdtAmount,
               });
             } else {
-              return JSON.stringify({
+              const response: any = {
                 success: false,
                 error: buyResult.error || "Failed to purchase tokens",
-                transactionHash: buyResult.transactionHash,
                 tokenAddress,
                 tokenData: tokenData,
                 usdtAmount: args.usdtAmount,
-              });
+              };
+              // Include explorer link if transaction hash is available even on failure
+              if (buyResult.transactionHash) {
+                response.transactionHash = buyResult.transactionHash;
+                response.explorerLink = `https://testnet.seistream.app/transactions/${buyResult.transactionHash}`;
+              }
+              return JSON.stringify(response);
             }
           } catch (error) {
             console.error(`[ERROR] Error buying tokens:`, error);
@@ -801,23 +897,30 @@ class OpenAIService {
             );
 
             if (sellResult.success) {
+              const explorerLink = `https://testnet.seistream.app/transactions/${sellResult.transactionHash}`;
               return JSON.stringify({
                 success: true,
                 message: `Tokens sold successfully! Transaction hash: ${sellResult.transactionHash}`,
                 transactionHash: sellResult.transactionHash,
+                explorerLink: explorerLink,
                 tokenAddress,
                 tokenData: tokenData,
                 tokenAmount: args.tokenAmount,
               });
             } else {
-              return JSON.stringify({
+              const response: any = {
                 success: false,
                 error: sellResult.error || "Failed to sell tokens",
-                transactionHash: sellResult.transactionHash,
                 tokenAddress,
                 tokenData: tokenData,
                 tokenAmount: args.tokenAmount,
-              });
+              };
+              // Include explorer link if transaction hash is available even on failure
+              if (sellResult.transactionHash) {
+                response.transactionHash = sellResult.transactionHash;
+                response.explorerLink = `https://testnet.seistream.app/transactions/${sellResult.transactionHash}`;
+              }
+              return JSON.stringify(response);
             }
           } catch (error) {
             console.error(`[ERROR] Error selling tokens:`, error);
@@ -826,6 +929,124 @@ class OpenAIService {
               error: `Failed to sell tokens: ${
                 error instanceof Error ? error.message : "Unknown error"
               }`,
+            });
+          }
+
+        case "getTokenHolders":
+          console.log(`[DEBUG] Getting token holders`);
+
+          try {
+            // Determine token address to get holders for
+            const tokenAddress = args.tokenAddress || currentTokenAddress;
+            if (!tokenAddress) {
+              return JSON.stringify({
+                success: false,
+                error:
+                  "Token address is required to get holders. Either provide tokenAddress parameter or use this function in a token context.",
+              });
+            }
+
+            console.log(`[DEBUG] Getting holders for token:`, tokenAddress);
+
+            // Get holders using TokenProjection
+            const holders = await TokenProjection.getTokenHolders(tokenAddress);
+
+            if (holders === null) {
+              return JSON.stringify({
+                success: false,
+                error: "Token not found",
+                tokenAddress,
+              });
+            }
+
+            console.log(`[DEBUG] Holders retrieved:`, holders.length);
+
+            return JSON.stringify({
+              success: true,
+              holders,
+              tokenAddress,
+              count: holders.length,
+            });
+          } catch (error) {
+            console.error(`[ERROR] Error getting token holders:`, error);
+            return JSON.stringify({
+              success: false,
+              error: "Failed to retrieve token holders",
+            });
+          }
+
+        case "getTokenTransactions":
+          console.log(`[DEBUG] Getting token transactions`);
+
+          try {
+            // Determine token address to get transactions for
+            const tokenAddress = args.tokenAddress || currentTokenAddress;
+            if (!tokenAddress) {
+              return JSON.stringify({
+                success: false,
+                error:
+                  "Token address is required to get transactions. Either provide tokenAddress parameter or use this function in a token context.",
+              });
+            }
+
+            const limit = Math.min(args.limit || 50, 100); // Cap at 100
+            console.log(
+              `[DEBUG] Getting transactions for token: ${tokenAddress}, limit: ${limit}`
+            );
+
+            // Get transactions using TokenProjection
+            const transactions = await TokenProjection.getRecentTransactions(
+              tokenAddress,
+              limit
+            );
+
+            // Format transactions with wei to human-readable conversion
+            const weiToEth = (weiValue: string): number => {
+              if (!weiValue || weiValue === "0") return 0;
+              return parseFloat(weiValue) / Math.pow(10, 18);
+            };
+
+            const formattedTransactions = transactions.map((tx) => ({
+              ...tx,
+              amountInFormatted:
+                tx.type === "buy"
+                  ? weiToEth(tx.amountIn).toFixed(2) + " USDT"
+                  : weiToEth(tx.amountIn).toFixed(6) + " tokens",
+              amountOutFormatted:
+                tx.type === "buy"
+                  ? weiToEth(tx.amountOut).toFixed(6) + " tokens"
+                  : weiToEth(tx.amountOut).toFixed(2) + " USDT",
+            }));
+
+            console.log(`[DEBUG] Transactions retrieved:`, transactions.length);
+
+            return JSON.stringify({
+              success: true,
+              transactions: formattedTransactions,
+              tokenAddress,
+              count: transactions.length,
+            });
+          } catch (error) {
+            console.error(`[ERROR] Error getting token transactions:`, error);
+            return JSON.stringify({
+              success: false,
+              error: "Failed to retrieve token transactions",
+            });
+          }
+
+        case "getPlatformKnowledge":
+          console.log(`[DEBUG] Getting full platform knowledge base`);
+
+          try {
+            return JSON.stringify({
+              success: true,
+              knowledge: PLATFORM_KNOWLEDGE_BASE,
+            });
+          } catch (error) {
+            console.error(`[ERROR] Error getting platform knowledge:`, error);
+            return JSON.stringify({
+              success: false,
+              error: "Failed to retrieve platform knowledge",
             });
           }
 
@@ -918,17 +1139,45 @@ You have access to the following tools:
 - getRecentTokens(limit): Get recently created tokens
 - collectTokenCreationData(...): Collect structured token creation data
 - createToken(tokenData): Create a new token on the platform
-- getUserBalances(): Get the user's ETH and USDT balances (requires authentication)
+- getUserBalances(): Get the user's complete balance information including SEI, USDT, and all token balances (requires authentication)
 - getUserTokenBalance(tokenAddress): Get the user's balance for a specific token (uses current token context if no address provided)
 - buyTokens(tokenAddress, usdtAmount): Execute a buy transaction for tokens using USDT.
 - sellTokens(tokenAddress, tokenAmount): Execute a sell transaction for tokens to receive USDT.
+- getTokenHolders(tokenAddress): Get the top token holders with their balances and percentages (uses current token context if no address provided)
+- getTokenTransactions(tokenAddress, limit): Get recent transaction history (buys/sells) for a token (uses current token context if no address provided)
+- getPlatformKnowledge(): Get comprehensive information about the SEI AgentFi platform, its features, and how it works
 
-When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. When users ask about their balances or how many tokens they own, use the balance tools to get real-time data. Be helpful, informative, and clear in your responses.
+When users ask about tokens, use these tools to provide accurate, up-to-date information. When they want to create tokens, guide them through the process step by step. When users ask about their balances or how many tokens they own, use the balance tools to get real-time data. 
+
+**Token Analysis and Insights:**
+- When users ask about token holders, distribution, or "who owns this token", use getTokenHolders() to show the top holders with their percentages
+- When users ask about trading activity, recent transactions, or "who has been buying/selling", use getTokenTransactions() to show recent buy/sell activity
+- These analytical tools help provide insights into token popularity, holder concentration, and trading patterns
+- Both tools work with the current token context, so if a user is viewing a token page, you can provide insights without them specifying the token address
+
+**Platform Knowledge:**
+- When users ask about the platform itself, what AgentFi is, how it works, its mission, features, or technology stack, use getPlatformKnowledge()
+- This tool always returns the complete platform knowledge base with all information about SEI AgentFi
+- Use this tool when users want to understand the platform's purpose, how it differs from other DeFi platforms, or what problems it solves
+
+Be helpful, informative, and clear in your responses. Use these analytical tools to provide rich insights about tokens when users are curious about trading activity or holder information, and use the platform knowledge tool to educate users about SEI AgentFi.
 
 **Important Balance Display Instructions:**
 - When referring to ETH balance from getUserBalances(), always call it "SEI balance" instead of "ETH balance" since this platform runs on the Sei blockchain
 - Display SEI balance as "SEI" not "ETH"
 - USDT balance should still be called "USDT balance"
+
+**Explorer Link Display Instructions:**
+- When mentioning transaction hashes, format them as clickable links to the Sei testnet explorer
+  - Use this format: https://testnet.seistream.app/transactions/[TRANSACTION_HASH]
+  - Example: "Transaction completed! View on explorer: https://testnet.seistream.app/transactions/0xfd5559ca382550ca02fe45be298be873d35abbfe16dffcf11ee2b880d8054da6"
+- When mentioning token addresses, format them as clickable links to the token page
+  - Use this format: https://testnet.seistream.app/tokens/[TOKEN_ADDRESS]  
+  - Example: "Token contract: https://testnet.seistream.app/tokens/0x6df6b40c67f84768599353adc176458d77da64b7"
+- When mentioning wallet addresses, format them as clickable links to the wallet page
+  - Use this format: https://testnet.seistream.app/account/[WALLET_ADDRESS]
+  - Example: "Wallet address: https://testnet.seistream.app/account/0x8529360a416F3AC38eC027e120e516e087f65B1d"
+- Always provide the appropriate explorer link when addresses or transaction hashes are mentioned
 
 Always format token information in a clear, readable way and include relevant details like names, symbols, descriptions, and social links when available.`;
 

@@ -10,6 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { seiTestnet } from "../config/chains.js";
 import { MockERC20Abi } from "../../abis/MockERC20Abi.js";
 import { ADMIN_PRIVATE_KEY, USDT_ADDRESS } from "../config/env.config.js";
+import { TokenProjection } from "../read/token.projection";
 
 // Create clients
 const publicClient = createPublicClient({
@@ -120,6 +121,75 @@ export class WalletService {
         error,
       });
       return "0"; // Return 0 if error occurred
+    }
+  }
+
+  /**
+   * Get user's balances for all tokens in the platform
+   */
+  static async getAllTokenBalances(userAddress: Address): Promise<
+    Array<{
+      tokenAddress: string;
+      name: string;
+      symbol: string;
+      balance: string;
+      decimals: number;
+    }>
+  > {
+    try {
+      console.log(
+        "🔍 [WalletService] Getting all token balances for:",
+        userAddress
+      );
+
+      // Get all tokens from the platform
+      const allTokens = await TokenProjection.getAllTokens();
+      console.log(
+        `🔍 [WalletService] Found ${allTokens.length} tokens to check`
+      );
+
+      const tokenBalances = [];
+
+      // Check balance for each token
+      for (const token of allTokens) {
+        try {
+          const balance = await this.getTokenBalance(
+            userAddress,
+            token.tokenAddress as Address
+          );
+
+          // Only include tokens with non-zero balance
+          if (balance !== "0") {
+            tokenBalances.push({
+              tokenAddress: token.tokenAddress,
+              name: token.name,
+              symbol: token.symbol,
+              balance: balance,
+              decimals: token.decimals,
+            });
+            console.log(
+              `✅ [WalletService] Found balance for ${token.symbol}: ${balance}`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `❌ [WalletService] Error checking balance for token ${token.symbol}:`,
+            error
+          );
+          // Continue with other tokens
+        }
+      }
+
+      console.log(
+        `✅ [WalletService] Found ${tokenBalances.length} tokens with balances`
+      );
+      return tokenBalances;
+    } catch (error) {
+      console.error(
+        "❌ [WalletService] Error getting all token balances:",
+        error
+      );
+      return [];
     }
   }
 }

@@ -9,6 +9,7 @@ export const useBalances = () => {
     isAuthenticated,
     ethBalance,
     usdtBalance,
+    tokenBalances,
     balancesLoading,
     setBalances,
     setBalancesLoading,
@@ -26,8 +27,9 @@ export const useBalances = () => {
       const response = await api.get("/auth/balances");
 
       if (response.status === 200) {
-        const { balances } = response.data;
-        setBalances(balances.eth, balances.usdt);
+        const { balances, tokenBalances: responseTokenBalances } =
+          response.data;
+        setBalances(balances.eth, balances.usdt, responseTokenBalances || []);
       }
     } catch (error) {
       console.error("Error fetching balances:", error);
@@ -56,6 +58,7 @@ export const useBalances = () => {
   return {
     ethBalance: formattedEthBalance,
     usdtBalance: formattedUsdtBalance,
+    tokenBalances,
     balancesLoading,
     fetchBalances,
   };

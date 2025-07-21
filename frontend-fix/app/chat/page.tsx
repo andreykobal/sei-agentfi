@@ -333,6 +333,18 @@ export default function ChatPage() {
                     ),
                     // Handle line breaks explicitly
                     br: () => <br />,
+                    // Handle links with proper word wrapping
+                    a: ({ children, href, ...props }) => (
+                      <a
+                        href={href}
+                        {...props}
+                        className="text-blue-400 hover:text-blue-300 underline break-all"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    ),
                     // Handle text nodes to process 0x strings
                     text: ({ children }) => {
                       if (typeof children === "string") {

@@ -336,12 +336,18 @@ auth.get("/balances", async (c) => {
       user.walletAddress as `0x${string}`
     );
 
+    // Get user token balances
+    const tokenBalances = await WalletService.getAllTokenBalances(
+      user.walletAddress as `0x${string}`
+    );
+
     return c.json({
       walletAddress: user.walletAddress,
       balances: {
         eth: balances.ethBalance,
         usdt: balances.usdtBalance,
       },
+      tokenBalances: tokenBalances,
     });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

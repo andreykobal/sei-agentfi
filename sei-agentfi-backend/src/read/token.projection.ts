@@ -533,6 +533,26 @@ export class TokenProjection {
     }
   }
 
+  // Get token holders for a specific token
+  static async getTokenHolders(
+    tokenAddress: string
+  ): Promise<TokenHolder[] | null> {
+    try {
+      const token = await Token.findOne({
+        tokenAddress: { $regex: new RegExp(`^${tokenAddress}$`, "i") },
+      }).lean();
+
+      if (!token) {
+        return null;
+      }
+
+      return token.holders || [];
+    } catch (error) {
+      console.error("Error getting token holders from MongoDB:", error);
+      throw error;
+    }
+  }
+
   // Get recent transactions (buys and sells) for a token
   static async getRecentTransactions(
     tokenAddress: string,

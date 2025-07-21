@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+interface TokenBalance {
+  tokenAddress: string;
+  name: string;
+  symbol: string;
+  balance: string;
+  decimals: number;
+}
+
 interface UserState {
   // Auth state
   isAuthenticated: boolean;
@@ -10,6 +18,7 @@ interface UserState {
   // Balance state
   ethBalance: string;
   usdtBalance: string;
+  tokenBalances: TokenBalance[];
   balancesLoading: boolean;
 
   // UI state
@@ -19,7 +28,11 @@ interface UserState {
   // Actions
   setAuthenticated: (authenticated: boolean) => void;
   setUserData: (email: string, walletAddress: string) => void;
-  setBalances: (ethBalance: string, usdtBalance: string) => void;
+  setBalances: (
+    ethBalance: string,
+    usdtBalance: string,
+    tokenBalances?: TokenBalance[]
+  ) => void;
   setBalancesLoading: (loading: boolean) => void;
   setLoading: (loading: boolean) => void;
   setVerifying: (verifying: boolean) => void;
@@ -36,6 +49,7 @@ export const useUserStore = create<UserState>()(
       walletAddress: "",
       ethBalance: "0",
       usdtBalance: "0",
+      tokenBalances: [],
       balancesLoading: false,
       isLoading: false,
       isVerifying: false,
@@ -51,8 +65,8 @@ export const useUserStore = create<UserState>()(
           isAuthenticated: true,
         }),
 
-      setBalances: (ethBalance, usdtBalance) =>
-        set({ ethBalance, usdtBalance }),
+      setBalances: (ethBalance, usdtBalance, tokenBalances = []) =>
+        set({ ethBalance, usdtBalance, tokenBalances }),
 
       setBalancesLoading: (balancesLoading) => set({ balancesLoading }),
 
@@ -67,6 +81,7 @@ export const useUserStore = create<UserState>()(
           walletAddress: "",
           ethBalance: "0",
           usdtBalance: "0",
+          tokenBalances: [],
           balancesLoading: false,
           isLoading: false,
           isVerifying: false,
@@ -79,6 +94,7 @@ export const useUserStore = create<UserState>()(
           walletAddress: "",
           ethBalance: "0",
           usdtBalance: "0",
+          tokenBalances: [],
           balancesLoading: false,
           isLoading: false,
           isVerifying: false,
@@ -92,6 +108,7 @@ export const useUserStore = create<UserState>()(
         walletAddress: state.walletAddress,
         ethBalance: state.ethBalance,
         usdtBalance: state.usdtBalance,
+        tokenBalances: state.tokenBalances,
       }),
     }
   )

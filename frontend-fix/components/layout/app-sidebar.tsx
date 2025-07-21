@@ -38,6 +38,7 @@ import { useApi } from "@/hooks/useApi";
 import { useUserStore } from "@/stores/userStore";
 import { useBalances } from "@/hooks/useBalances";
 import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
+import { formatUnits } from "viem";
 
 // Navigation items
 const items = [
@@ -82,8 +83,17 @@ export function AppSidebar() {
   } = useUserStore();
 
   // Balance management
-  const { ethBalance, usdtBalance, balancesLoading, fetchBalances } =
-    useBalances();
+  const {
+    ethBalance,
+    usdtBalance,
+    tokenBalances,
+    balancesLoading,
+    fetchBalances,
+  } = useBalances();
+
+  // Token balance pagination
+  const [showAllTokens, setShowAllTokens] = useState(false);
+  const maxTokensToShow = 10;
 
   // Local UI state (not shared across components)
   const [email, setEmail] = useState("");
@@ -245,6 +255,23 @@ export function AppSidebar() {
     return `${address.slice(0, 5)}...${address.slice(-5)}`;
   };
 
+  const formatTokenBalance = (balance: string, decimals: number) => {
+    try {
+      const formatted = parseFloat(formatUnits(BigInt(balance), decimals));
+      if (formatted === 0) return "0";
+      if (formatted < 0.001) return "<0.001";
+      return formatted.toFixed(3);
+    } catch {
+      return "0";
+    }
+  };
+
+  const visibleTokenBalances = showAllTokens
+    ? tokenBalances
+    : tokenBalances.slice(0, maxTokensToShow);
+
+  const hasMoreTokens = tokenBalances.length > maxTokensToShow;
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -365,6 +392,75 @@ export function AppSidebar() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Token Balances */}
+                      {tokenBalances.length > 0 && (
+                        <div className="space-y-1 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-foreground font-semibold">
+                              Token Balances:
+                            </span>
+                            <button
+                              onClick={fetchBalances}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                              title="Refresh balances"
+                            >
+                              ↻
+                            </button>
+                          </div>
+                          {balancesLoading ? (
+                            <div className="space-y-1">
+                              {[
+                                ...Array(Math.min(3, tokenBalances.length)),
+                              ].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="w-full h-3 bg-muted animate-pulse rounded"
+                                ></div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {visibleTokenBalances.map((token) => (
+                                <div
+                                  key={token.tokenAddress}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span
+                                    className="text-xs text-foreground truncate max-w-[60px]"
+                                    title={token.name}
+                                  >
+                                    {token.symbol}:
+                                  </span>
+                                  <span className="text-xs font-mono">
+                                    {formatTokenBalance(
+                                      token.balance,
+                                      token.decimals
+                                    )}
+                                  </span>
+                                </div>
+                              ))}
+                              {hasMoreTokens && !showAllTokens && (
+                                <button
+                                  onClick={() => setShowAllTokens(true)}
+                                  className="text-xs text-blue-500 hover:text-blue-400 w-full text-left"
+                                >
+                                  +{tokenBalances.length - maxTokensToShow} more
+                                  tokens...
+                                </button>
+                              )}
+                              {showAllTokens && hasMoreTokens && (
+                                <button
+                                  onClick={() => setShowAllTokens(false)}
+                                  className="text-xs text-blue-500 hover:text-blue-400 w-full text-left"
+                                >
+                                  Show less
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <SidebarMenuButton onClick={handleLogout}>
