@@ -277,7 +277,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg">
+            <SidebarMenuButton size="lg" className="hover:bg-zinc-900/50">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-purple-600 text-sidebar-primary-foreground">
                 <TrendingUp className="size-4" />
               </div>
@@ -312,7 +312,7 @@ export function AppSidebar() {
                         className={
                           isActive
                             ? "bg-zinc-900/50 dark:bg-zinc-900/50 text-sidebar-accent-foreground font-medium"
-                            : ""
+                            : "hover:bg-zinc-900/50"
                         }
                       >
                         <item.icon />
@@ -332,14 +332,14 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 {isAuthenticated ? (
                   <div className="flex flex-col gap-2">
-                    <SidebarMenuButton>
+                    <SidebarMenuButton className="hover:bg-zinc-900/50">
                       <User className="size-4" />
                       <span className="truncate">{userEmail}</span>
                     </SidebarMenuButton>
                     {walletAddress && (
                       <SidebarMenuButton
                         onClick={handleCopyWallet}
-                        className="cursor-pointer hover:bg-sidebar-accent"
+                        className="cursor-pointer hover:bg-zinc-900/50"
                       >
                         <Wallet className="size-4" />
                         <span className="text-xs font-mono">
@@ -463,7 +463,10 @@ export function AppSidebar() {
                       )}
                     </div>
 
-                    <SidebarMenuButton onClick={handleLogout}>
+                    <SidebarMenuButton
+                      onClick={handleLogout}
+                      className="hover:bg-zinc-900/50"
+                    >
                       <LogOut className="size-4" />
                       <span>Sign out</span>
                     </SidebarMenuButton>
@@ -474,7 +477,7 @@ export function AppSidebar() {
                     onOpenChange={handleDialogOpenChange}
                   >
                     <DialogTrigger asChild>
-                      <SidebarMenuButton>
+                      <SidebarMenuButton className="bg-white text-black hover:bg-white/80 hover:text-black">
                         <User className="size-4" />
                         <span>Login</span>
                       </SidebarMenuButton>

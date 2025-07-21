@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, User } from "lucide-react";
 import { formatUnits } from "viem";
 import { useUserStore } from "@/stores/userStore";
 import { useApi } from "@/hooks/useApi";
@@ -40,7 +40,7 @@ export function TokenSwap({
   const [isLoading, setIsLoading] = useState(false); // Loading state for transactions
 
   // Get USDT balance from user store and balances hook
-  const { usdtBalance: usdtBalanceWei } = useUserStore();
+  const { usdtBalance: usdtBalanceWei, isAuthenticated } = useUserStore();
   const { fetchBalances } = useBalances();
 
   // Debug log when token prop changes
@@ -443,6 +443,22 @@ export function TokenSwap({
       <span className="font-semibold">{symbol}</span>
     </div>
   );
+
+  if (!isAuthenticated) {
+    return (
+      <Card className={`p-6 max-w-md ${className}`}>
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <User className="w-12 h-12 text-muted-foreground/50" />
+          <h2 className="text-xl font-semibold text-muted-foreground">
+            Sign in to Swap
+          </h2>
+          <p className="text-center text-sm text-muted-foreground">
+            Please sign in to swap tokens and access trading features
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`p-6 max-w-md ${className}`}>

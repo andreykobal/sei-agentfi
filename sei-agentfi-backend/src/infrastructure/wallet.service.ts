@@ -40,12 +40,12 @@ export class WalletService {
         value: parseEther("0.1"),
       });
 
-      // Send 1000 USDT (18 decimals)
+      // Send 10000 USDT (18 decimals)
       const usdtTxHash = await walletClient.writeContract({
         address: USDT_ADDRESS as Address,
         abi: MockERC20Abi,
         functionName: "transfer",
-        args: [userAddress, parseUnits("1000", 18)],
+        args: [userAddress, parseUnits("10000", 18)],
       });
 
       return { ethTxHash, usdtTxHash };

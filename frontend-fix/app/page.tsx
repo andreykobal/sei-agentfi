@@ -36,6 +36,7 @@ import { Plus, Loader2, ArrowUpDown } from "lucide-react";
 import { FaGlobe, FaTwitter, FaTelegramPlane, FaDiscord } from "react-icons/fa";
 import { toast } from "sonner";
 import { chatEventEmitter, CHAT_EVENTS } from "@/lib/eventEmitter";
+import { useUserStore } from "@/stores/userStore";
 
 interface Token {
   _id: string;
@@ -110,6 +111,7 @@ export default function Home() {
     discord: "",
   });
   const { get, post } = useApi();
+  const { isAuthenticated } = useUserStore();
 
   useEffect(() => {
     fetchTokens();
@@ -469,170 +471,199 @@ export default function Home() {
         {/* Tokens Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Create Token Card */}
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-zinc-500 hover:border-muted-foreground/50 cursor-pointer big-zinc-900/80 hover:bg-zinc-900/70">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Plus className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                  <CardTitle className="text-lg text-muted-foreground mb-2">
-                    Create New Token
-                  </CardTitle>
-                  <CardDescription className="text-center">
-                    Launch your own AI agent token on Sei
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Token</DialogTitle>
-                <DialogDescription>
-                  Fill in the details below to create your AI agent token on the
-                  Sei network. Required fields are marked with *.
-                </DialogDescription>
-              </DialogHeader>
+          {isAuthenticated ? (
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-zinc-500 hover:border-muted-foreground/50 cursor-pointer big-zinc-900/80 hover:bg-zinc-900/70">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Plus className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                    <CardTitle className="text-lg text-muted-foreground mb-2">
+                      Create New Token
+                    </CardTitle>
+                    <CardDescription className="text-center">
+                      Launch your own AI agent token on Sei
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Token</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to create your AI agent token on
+                    the Sei network. Required fields are marked with *.
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="grid gap-4 py-4">
-                {createError && (
-                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-md text-sm">
-                    {createError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium">
-                      Token Name *
-                    </label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="e.g., AI Agent"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      maxLength={50}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="symbol" className="text-sm font-medium">
-                      Symbol *
-                    </label>
-                    <Input
-                      id="symbol"
-                      name="symbol"
-                      placeholder="e.g., AGT"
-                      value={formData.symbol}
-                      onChange={handleInputChange}
-                      maxLength={10}
-                      style={{ textTransform: "uppercase" }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="description" className="text-sm font-medium">
-                    Description *
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    placeholder="Describe your AI agent token..."
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                    maxLength={500}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-muted-foreground">
-                    Social Links (Optional)
-                  </h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="website" className="text-sm font-medium">
-                        Website
-                      </label>
-                      <Input
-                        id="website"
-                        name="website"
-                        placeholder="https://example.com"
-                        value={formData.website}
-                        onChange={handleInputChange}
-                      />
+                <div className="grid gap-4 py-4">
+                  {createError && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-md text-sm">
+                      {createError}
                     </div>
-                    <div className="space-y-2">
-                      <label htmlFor="twitter" className="text-sm font-medium">
-                        Twitter
-                      </label>
-                      <Input
-                        id="twitter"
-                        name="twitter"
-                        placeholder="https://twitter.com/..."
-                        value={formData.twitter}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="telegram" className="text-sm font-medium">
-                        Telegram
-                      </label>
-                      <Input
-                        id="telegram"
-                        name="telegram"
-                        placeholder="https://t.me/..."
-                        value={formData.telegram}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label htmlFor="discord" className="text-sm font-medium">
-                        Discord
-                      </label>
-                      <Input
-                        id="discord"
-                        name="discord"
-                        placeholder="https://discord.gg/..."
-                        value={formData.discord}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    resetForm();
-                  }}
-                  disabled={isCreating}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateToken} disabled={isCreating}>
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Token...
-                    </>
-                  ) : (
-                    "Create Token"
                   )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="name" className="text-sm font-medium">
+                        Token Name *
+                      </label>
+                      <Input
+                        id="name"
+                        name="name"
+                        placeholder="e.g., AI Agent"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        maxLength={50}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="symbol" className="text-sm font-medium">
+                        Symbol *
+                      </label>
+                      <Input
+                        id="symbol"
+                        name="symbol"
+                        placeholder="e.g., AGT"
+                        value={formData.symbol}
+                        onChange={handleInputChange}
+                        maxLength={10}
+                        style={{ textTransform: "uppercase" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="description"
+                      className="text-sm font-medium"
+                    >
+                      Description *
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      placeholder="Describe your AI agent token..."
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      maxLength={500}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Social Links (Optional)
+                    </h4>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="website"
+                          className="text-sm font-medium"
+                        >
+                          Website
+                        </label>
+                        <Input
+                          id="website"
+                          name="website"
+                          placeholder="https://example.com"
+                          value={formData.website}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="twitter"
+                          className="text-sm font-medium"
+                        >
+                          Twitter
+                        </label>
+                        <Input
+                          id="twitter"
+                          name="twitter"
+                          placeholder="https://twitter.com/..."
+                          value={formData.twitter}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="telegram"
+                          className="text-sm font-medium"
+                        >
+                          Telegram
+                        </label>
+                        <Input
+                          id="telegram"
+                          name="telegram"
+                          placeholder="https://t.me/..."
+                          value={formData.telegram}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="discord"
+                          className="text-sm font-medium"
+                        >
+                          Discord
+                        </label>
+                        <Input
+                          id="discord"
+                          name="discord"
+                          placeholder="https://discord.gg/..."
+                          value={formData.discord}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreateDialogOpen(false);
+                      resetForm();
+                    }}
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateToken} disabled={isCreating}>
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Token...
+                      </>
+                    ) : (
+                      "Create Token"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Card className="w-full hover:shadow-lg transition-shadow duration-200 border-dashed border-2 border-zinc-500 hover:border-muted-foreground/50 bg-zinc-900/50">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Plus className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                <CardTitle className="text-lg text-muted-foreground mb-2">
+                  Sign in to Create Token
+                </CardTitle>
+                <CardDescription className="text-center">
+                  Please sign in to launch your own AI agent token on Sei
+                </CardDescription>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Existing Tokens */}
           {tokens.length === 0 && !loading ? (
