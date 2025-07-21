@@ -439,7 +439,7 @@ export function TokenSwap({
                 variant="ghost"
                 size="sm"
                 onClick={handleMaxClick}
-                className="h-6 px-2 text-xs text-purple-400 hover:text-purple-300"
+                className="h-6 px-2 text-xs text-red-500 hover:text-red-400"
               >
                 Max
               </Button>
