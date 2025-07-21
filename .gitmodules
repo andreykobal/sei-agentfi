@@ -1,3 +1,6 @@
 [submodule "sei-agentfi-smart-contracts"]
 	path = sei-agentfi-smart-contracts
 	url = https://github.com/andreykobal/sei-agentfi-smart-contracts.git
+[submodule "sei-agentfi-frontend"]
+	path = sei-agentfi-frontend
+	url = https://github.com/andreykobal/sei-agentfi-frontend.git
