@@ -6,15 +6,31 @@
 
 ![Create-Next-App-07-22-2025_06_19_AM](https://github.com/user-attachments/assets/8bf6a5d9-430a-4979-ac30-50faca32996f)
 
-## 2️⃣ Problem
+## 2️⃣ Demo Links
+
+🔗 **[Live Platform Demo](https://sei.avaethernity.top/)**  
+🎥 **[Demo Video (YouTube)](https://www.youtube.com/)**
+
+**Sei Testnet Deployments**
+
+**[Bonding Curve (Uniswap V4 Hook)](https://testnet.seistream.app/contracts/0x34f494c5fc1535bc20dceca39b6a590c743fc088)**  
+`0x34F494c5FC1535Bc20DcECa39b6A590C743fc088`
+
+**[Token Factory](https://testnet.seistream.app/contracts/0x8743e5061495f483cfd53b23ff751e8a71c8e67d)**  
+`0x8743e5061495f483CFD53B23ff751E8A71C8E67D`
+
+**[USDT](https://testnet.seistream.app/tokens/0x0dcb5f7195ca0dc566db58b0c9202bbd5e846b8a?standart=erc20)**  
+`0x0dcb5f7195ca0dc566db58b0c9202bbd5e846b8a`
+
+## 3️⃣ Problem
 
 Launching tokens in DeFi remains an unstructured process: new projects often start without real liquidity, without market activity, and without access to algorithmic support or high-quality real-time analytics.
 
-## 3️⃣ Solution
+## 4️⃣ Solution
 
 We are creating a standardized, automated method for launching and supporting DeFi tokens with real liquidity and market activity, managed by AI agents that provide real-time insights for decision-making.
 
-## 4️⃣ How It Works (Key Features)
+## 5️⃣ How It Works (Key Features)
 
 🔹🔥 **Conversational DeFi Interface** — Revolutionary chat-based UI where users execute complex DeFi operations through natural language, powered by AI agents with complete blockchain access and real-time market intelligence.
 
@@ -28,7 +44,7 @@ We are creating a standardized, automated method for launching and supporting De
 
 🔹 **Graduate to AMM** — Tokens automatically transition from bonding curves to full AMM pools once certain market cap thresholds are reached.
 
-## 5️⃣ Target Audience
+## 6️⃣ Target Audience
 
 **Token Developers** — Get out-of-the-box liquidity, trading bots, and analytics to support their projects.
 
@@ -36,14 +52,14 @@ We are creating a standardized, automated method for launching and supporting De
 
 **Meme Coin and Experimental Token Creators** — Quickly launch projects with transparent growth models.
 
-## 6️⃣ Technology Stack
+## 7️⃣ Technology Stack
 
 - **Blockchain**: SEI Network
 - **Smart Contracts**: Solidity (Uniswap V4 + custom bonding curve)
 - **Indexer**: Ponder
 - **AI/ML**: OpenAI GPT-4 for agents and chat
-- **Frontend**: Next.js, React, Tailwind CSS, Wagmi, RainbowKit
-- **Backend**: Node.js, Express.js
+- **Frontend**: Next.js, React, Tailwind CSS, Zustand
+- **Backend**: Node.js, MongoDB
 - **Trading Bots**: Viem with market-making algorithms
 - **Database**: PostgreSQL for event logs, MongoDB for projections
 
@@ -62,11 +78,13 @@ We are creating a standardized, automated method for launching and supporting De
 ---
 
 Blockchain (Uniswap) serves as the **source of truth**, from which we read events like token launches, swaps, and liquidity changes.
+
 These events are processed, projections are built into MongoDB (e.g., for token stats, prices, volumes, liquidity), and via separate CQRS routes, we deliver ready-made data for analytics, market dashboards, and insights.
 
-## 7️⃣ Why It Matters / Benefits / Impact
+## 8️⃣ Why It Matters / Benefits / Impact
 
 The platform removes the main barrier in DeFi between a token idea and a functioning market with real activity.
+
 It reduces risks for investors through transparent growth mechanisms, removes barriers for projects **(no need for expensive market makers)**, and creates a healthier token ecosystem where market activity is managed by AI agents, not manipulation.
 
 ---
@@ -82,7 +100,6 @@ _"AI-native DeFi platform delivering real-time market intelligence and agentic t
 ## How it Works
 
 <img width="2581" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-050036" src="https://github.com/user-attachments/assets/bc1bf485-bd8c-44b6-b79e-476cd40c1de6" />
-
 
 ## 🤖 AI-Powered Chat System
 
@@ -154,7 +171,6 @@ Event-sourced CQRS backend for AI-native DeFi platform with blockchain indexing,
 ## How it works
 
 <img width="2532" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-045915" src="https://github.com/user-attachments/assets/b736a408-75d7-4d67-bf4b-59c7bb1a0152" />
-
 
 ## Architecture Overview
 
@@ -361,7 +377,6 @@ A decentralized token trading platform built on Uniswap V4 that implements a bon
 ## How it Works
 
 <img width="3840" height="1230" alt="Untitled diagram _ Mermaid Chart-2025-07-22-050239" src="https://github.com/user-attachments/assets/4336e0d4-52e0-46bc-b3e9-f7444edbb888" />
-
 
 ## Token Lifecycle
 
