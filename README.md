@@ -1,7 +1,3 @@
-Here’s your full translation to English:
-
----
-
 # SEI AgentFi - Project Description for Hackathon
 
 ## 1️⃣ Project Name
