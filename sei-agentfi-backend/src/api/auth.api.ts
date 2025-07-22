@@ -58,7 +58,7 @@ auth.post("/send-magic-link", async (c) => {
       subject: "Your Sign-In Link for Sei AgentFi",
       // Add proper headers for better deliverability
       headers: {
-        "Reply-To": "support@avaethernity.top",
+        "Reply-To": "noreply@avaethernity.top",
         "X-Entity-Ref-ID": `magic-link-${Date.now()}`,
       },
       html: `
