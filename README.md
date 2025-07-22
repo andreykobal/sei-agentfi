@@ -4,7 +4,7 @@
 
 **SEI: AgentFi** - _AI-native DeFi platform for real-time insights and autonomous trading_
 
-![Create-Next-App-07-22-2025_06_17_AM](https://github.com/user-attachments/assets/ce0a7259-17bd-429e-96ec-71890920a1cc)
+![Create-Next-App-07-22-2025_06_19_AM](https://github.com/user-attachments/assets/8bf6a5d9-430a-4979-ac30-50faca32996f)
 
 ## 2️⃣ Problem
 
