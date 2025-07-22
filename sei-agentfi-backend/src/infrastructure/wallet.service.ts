@@ -169,6 +169,93 @@ export class WalletService {
   }
 
   /**
+   * Get user's USDT balance only
+   */
+  static async getUsdtBalance(userAddress: Address): Promise<string> {
+    try {
+      console.log("🔍 [WalletService] Getting USDT balance for:", userAddress);
+
+      const usdtBalance = await publicClient.readContract({
+        address: USDT_ADDRESS as Address,
+        abi: MockERC20Abi,
+        functionName: "balanceOf",
+        args: [userAddress],
+      });
+
+      const balanceString = (usdtBalance as bigint).toString();
+      console.log("✅ [WalletService] USDT balance retrieved:", {
+        userAddress,
+        balance: balanceString,
+      });
+
+      return balanceString;
+    } catch (error) {
+      console.error("❌ [WalletService] Error getting USDT balance:", {
+        userAddress,
+        error,
+      });
+      return "0"; // Return 0 if error occurred
+    }
+  }
+
+  /**
+   * Get user's USDT and specific token balances (optimized for market maker)
+   */
+  static async getUsdtAndTokenBalances(
+    userAddress: Address,
+    tokenAddress: Address
+  ): Promise<{ usdtBalance: string; tokenBalance: string }> {
+    try {
+      console.log("🔍 [WalletService] Getting USDT and token balances for:", {
+        userAddress,
+        tokenAddress,
+      });
+
+      // Execute both balance calls in parallel for better performance
+      const [usdtBalance, tokenBalance] = await Promise.all([
+        publicClient.readContract({
+          address: USDT_ADDRESS as Address,
+          abi: MockERC20Abi,
+          functionName: "balanceOf",
+          args: [userAddress],
+        }),
+        publicClient.readContract({
+          address: tokenAddress as Address,
+          abi: MockERC20Abi,
+          functionName: "balanceOf",
+          args: [userAddress],
+        }),
+      ]);
+
+      const result = {
+        usdtBalance: (usdtBalance as bigint).toString(),
+        tokenBalance: (tokenBalance as bigint).toString(),
+      };
+
+      console.log("✅ [WalletService] USDT and token balances retrieved:", {
+        userAddress,
+        tokenAddress,
+        ...result,
+      });
+
+      return result;
+    } catch (error) {
+      console.error(
+        "❌ [WalletService] Error getting USDT and token balances:",
+        {
+          userAddress,
+          tokenAddress,
+          error,
+        }
+      );
+      return {
+        usdtBalance: "0",
+        tokenBalance: "0",
+      };
+    }
+  }
+
+  /**
    * Get user's balances for all tokens in the platform
    */
   static async getAllTokenBalances(userAddress: Address): Promise<
@@ -234,6 +321,129 @@ export class WalletService {
         error
       );
       return [];
+    }
+  }
+
+  /**
+   * Transfer USDT from one wallet to another
+   */
+  static async transferUsdt(
+    fromPrivateKey: string,
+    toAddress: Address,
+    amountInUsdt: string
+  ): Promise<string> {
+    try {
+      console.log(
+        `💸 [WalletService] Transferring ${amountInUsdt} USDT to ${toAddress}`
+      );
+
+      // Create wallet client with sender's private key
+      const senderAccount = privateKeyToAccount(
+        fromPrivateKey as `0x${string}`
+      );
+      const senderWalletClient = createWalletClient({
+        chain: seiTestnet,
+        transport: http(),
+        account: senderAccount,
+      });
+
+      // Convert amount to wei (18 decimals)
+      const amountWei = parseUnits(amountInUsdt, 18);
+
+      // Execute transfer
+      const txHash = await senderWalletClient.writeContract({
+        address: USDT_ADDRESS as Address,
+        abi: MockERC20Abi,
+        functionName: "transfer",
+        args: [toAddress, amountWei],
+      });
+
+      // Wait for transaction confirmation
+      console.log(
+        `⏳ [WalletService] Waiting for USDT transfer confirmation: ${txHash}`
+      );
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+      });
+
+      if (receipt.status !== "success") {
+        throw new Error(`USDT transfer failed: ${txHash}`);
+      }
+
+      console.log(
+        `✅ [WalletService] USDT transfer confirmed: ${txHash} (${amountInUsdt} USDT → ${toAddress})`
+      );
+      return txHash;
+    } catch (error) {
+      console.error("❌ [WalletService] Error transferring USDT:", error);
+      throw new Error(
+        `Failed to transfer USDT: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  /**
+   * Transfer tokens from one wallet to another
+   */
+  static async transferToken(
+    fromPrivateKey: string,
+    toAddress: Address,
+    tokenAddress: Address,
+    amountInTokens: string
+  ): Promise<string> {
+    try {
+      console.log(
+        `💸 [WalletService] Transferring ${amountInTokens} tokens (${tokenAddress}) to ${toAddress}`
+      );
+
+      // Create wallet client with sender's private key
+      const senderAccount = privateKeyToAccount(
+        fromPrivateKey as `0x${string}`
+      );
+      const senderWalletClient = createWalletClient({
+        chain: seiTestnet,
+        transport: http(),
+        account: senderAccount,
+      });
+
+      // Convert amount to wei (18 decimals)
+      const amountWei = parseUnits(amountInTokens, 18);
+
+      // Execute transfer
+      const txHash = await senderWalletClient.writeContract({
+        address: tokenAddress,
+        abi: MockERC20Abi,
+        functionName: "transfer",
+        args: [toAddress, amountWei],
+      });
+
+      // Wait for transaction confirmation
+      console.log(
+        `⏳ [WalletService] Waiting for token transfer confirmation: ${txHash}`
+      );
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 1,
+      });
+
+      if (receipt.status !== "success") {
+        throw new Error(`Token transfer failed: ${txHash}`);
+      }
+
+      console.log(
+        `✅ [WalletService] Token transfer confirmed: ${txHash} (${amountInTokens} tokens → ${toAddress})`
+      );
+      return txHash;
+    } catch (error) {
+      console.error("❌ [WalletService] Error transferring tokens:", error);
+      throw new Error(
+        `Failed to transfer tokens: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 }

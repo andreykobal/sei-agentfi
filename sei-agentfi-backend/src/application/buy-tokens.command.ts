@@ -154,4 +154,90 @@ export class BuyTokensCommand {
       throw new Error(`Validation failed: ${errors.join(", ")}`);
     }
   }
+
+  /**
+   * Buy tokens using bot's dedicated wallet (for market maker bots)
+   */
+  static async executeWithWallet(
+    walletAddress: string,
+    privateKey: string,
+    params: BuyTokensParams
+  ): Promise<BuyTokensResult> {
+    try {
+      console.log(
+        `💰 [BUY TOKENS BOT] Starting token purchase for bot wallet: ${walletAddress}`
+      );
+      console.log(`💰 [BUY TOKENS BOT] Purchase params:`, {
+        tokenAddress: params.tokenAddress,
+        usdtAmount: params.usdtAmount,
+      });
+
+      // Validate input parameters
+      this.validateParams(params);
+
+      console.log(`💰 [BUY TOKENS BOT] Using bot wallet: ${walletAddress}`);
+
+      // Convert USDT amount to wei (assuming 18 decimals for USDT)
+      const usdtAmountWei = parseEther(params.usdtAmount);
+
+      console.log(
+        `💰 [BUY TOKENS BOT] Step 1: Approving USDT for BondingCurve contract`
+      );
+
+      // Step 1: Approve USDT for the BondingCurve contract
+      await writeContractWithAccount({
+        address: USDT_ADDRESS as `0x${string}`,
+        abi: MockERC20Abi,
+        functionName: "approve",
+        args: [BONDING_CURVE_ADDRESS as `0x${string}`, usdtAmountWei] as const,
+        account: {
+          address: walletAddress,
+          privateKey: privateKey,
+        },
+      });
+
+      console.log(`💰 [BUY TOKENS BOT] ✅ USDT approval successful`);
+
+      // Prepare contract arguments for buyTokens
+      const contractArgs = [
+        params.tokenAddress as `0x${string}`,
+        usdtAmountWei,
+      ] as const;
+
+      console.log(
+        `💰 [BUY TOKENS BOT] Step 2: Calling buyTokens on bonding curve contract at: ${BONDING_CURVE_ADDRESS}`
+      );
+      console.log(`💰 [BUY TOKENS BOT] Contract args:`, {
+        tokenAddress: params.tokenAddress,
+        usdtAmountWei: usdtAmountWei.toString(),
+      });
+
+      // Step 2: Execute the buyTokens contract call
+      const transactionHash = await writeContractWithAccount({
+        address: BONDING_CURVE_ADDRESS as `0x${string}`,
+        abi: BondingCurveAbi,
+        functionName: "buyTokens",
+        args: contractArgs,
+        account: {
+          address: walletAddress,
+          privateKey: privateKey,
+        },
+      });
+
+      console.log(`💰 [BUY TOKENS BOT] ✅ Transaction completed successfully!`);
+      console.log(`💰 [BUY TOKENS BOT] Transaction hash: ${transactionHash}`);
+
+      return {
+        transactionHash,
+        success: true,
+      };
+    } catch (error) {
+      console.error(`❌ [BUY TOKENS BOT] Transaction failed:`, error);
+      return {
+        transactionHash: "0x" as Hash,
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
 }

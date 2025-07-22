@@ -1,0 +1,451 @@
+import { formatEther } from "viem";
+import { BuyTokensCommand } from "../../application/buy-tokens.command";
+import { SellTokensCommand } from "../../application/sell-tokens.command";
+import {
+  MarketMakerModel,
+  IMarketMakerBot,
+} from "../../models/market-maker.model";
+import { TokenProjection } from "../../projections/token.projection";
+import { WalletService } from "../wallet.service";
+import { TradeDecision } from "./config";
+import { scheduleNextTrade } from "./scheduling";
+import {
+  analyzePriceImpact,
+  calculateGrowthProgress,
+  adjustTradingStrategy,
+} from "./analysis";
+
+/**
+ * Wait for price update after transaction with timeout
+ */
+async function waitForPriceUpdate(
+  tokenAddress: string,
+  currentPrice: string,
+  timeoutMs: number = 30000 // 30 second timeout
+): Promise<string> {
+  const startTime = Date.now();
+  const checkInterval = 500; // Check every 500ms
+
+  console.log(
+    `⏳ [PRICE WAIT] Waiting for price update from ${formatEther(
+      BigInt(currentPrice)
+    )} USDT...`
+  );
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const token = await TokenProjection.getTokenByAddress(tokenAddress);
+      const newPrice = token?.price || currentPrice;
+
+      // Check if price has changed
+      if (newPrice !== currentPrice) {
+        const waitTime = Date.now() - startTime;
+        console.log(
+          `✅ [PRICE WAIT] Price updated to ${formatEther(
+            BigInt(newPrice)
+          )} USDT after ${waitTime}ms`
+        );
+        return newPrice;
+      }
+
+      // Wait before next check
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+    } catch (error) {
+      console.error(`❌ [PRICE WAIT] Error checking price:`, error);
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+    }
+  }
+
+  // Timeout reached, return current price
+  console.log(
+    `⏰ [PRICE WAIT] Timeout reached (${timeoutMs}ms), using current price ${formatEther(
+      BigInt(currentPrice)
+    )} USDT`
+  );
+  return currentPrice;
+}
+
+/**
+ * Get random trade percentage between min and max
+ */
+function getRandomTradePercentage(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+/**
+ * Make trade decision based on current balances and bot configuration
+ */
+function makeTradeDecision(
+  bot: IMarketMakerBot,
+  currentUsdtBalance: string,
+  currentTokenBalance: string,
+  currentTokenPrice: string
+): TradeDecision {
+  const budgetWei = BigInt(bot.budget);
+  const currentUsdtWei = BigInt(currentUsdtBalance);
+  const currentTokenWei = BigInt(currentTokenBalance);
+
+  // Calculate trade amount (random percentage of budget)
+  const tradePercentage = getRandomTradePercentage(
+    bot.minTradePercentage,
+    bot.maxTradePercentage
+  );
+
+  const tradeAmountWei =
+    (budgetWei * BigInt(Math.floor(tradePercentage * 100))) / BigInt(10000);
+  const buyAmount = tradeAmountWei; // Amount in USDT wei to spend on buying
+  const sellAmount = tradeAmountWei; // Amount in token wei to sell
+
+  // Determine if we should buy or sell based on current balances
+  // Calculate tokens value in USDT: (tokenBalance * tokenPrice) / 10^18
+  const currentTokenPriceWei = BigInt(currentTokenPrice);
+  const tokensValueInUsdt =
+    (currentTokenWei * currentTokenPriceWei) / BigInt(10 ** 18);
+
+  // Calculate total portfolio value (USDT + tokens value in USDT)
+  const totalPortfolioValue = currentUsdtWei + tokensValueInUsdt;
+
+  // Calculate actual percentages of current portfolio
+  const usdtPercentage =
+    totalPortfolioValue > 0
+      ? Number((currentUsdtWei * BigInt(100)) / totalPortfolioValue)
+      : 50; // Default to 50% if no portfolio
+
+  const tokenPercentage = 100 - usdtPercentage;
+
+  console.log(`🧮 [MARKET MAKER] Balance analysis:`);
+  console.log(`  - USDT balance: ${formatEther(currentUsdtWei)} USDT`);
+  console.log(`  - Token balance: ${formatEther(currentTokenWei)} tokens`);
+  console.log(
+    `  - Token price: ${formatEther(currentTokenPriceWei)} USDT per token`
+  );
+  console.log(`  - Tokens value: ${formatEther(tokensValueInUsdt)} USDT`);
+  console.log(`  - Total portfolio: ${formatEther(totalPortfolioValue)} USDT`);
+  console.log(`  - USDT: ${usdtPercentage.toFixed(1)}%`);
+  console.log(`  - Tokens: ${tokenPercentage.toFixed(1)}%`);
+  console.log(`  - Buy amount: ${formatEther(buyAmount)} USDT`);
+  console.log(`  - Sell amount: ${formatEther(sellAmount)} tokens`);
+
+  // Decision logic with more balanced thresholds
+  if (usdtPercentage > 70) {
+    // Too much USDT, prefer buying
+    console.log(
+      `💰 [MARKET MAKER] Too much USDT (${usdtPercentage.toFixed(
+        1
+      )}%), preferring BUY`
+    );
+    if (currentUsdtWei >= buyAmount) {
+      return { action: "buy", amount: buyAmount.toString() };
+    }
+  } else if (usdtPercentage < 30) {
+    // Too many tokens, prefer selling
+    console.log(
+      `🪙 [MARKET MAKER] Too many tokens (${tokenPercentage.toFixed(
+        1
+      )}%), preferring SELL`
+    );
+    if (currentTokenWei >= sellAmount) {
+      return { action: "sell", amount: sellAmount.toString() };
+    }
+  } else {
+    // Balanced, alternate trades with growth bias
+    const shouldBuy = Math.random() < 0.6; // 60% chance to buy (growth bias)
+    console.log(
+      `⚖️ [MARKET MAKER] Balanced portfolio, random choice: ${
+        shouldBuy ? "BUY" : "SELL"
+      }`
+    );
+
+    if (shouldBuy && currentUsdtWei >= buyAmount) {
+      return { action: "buy", amount: buyAmount.toString() };
+    } else if (!shouldBuy && currentTokenWei >= sellAmount) {
+      return { action: "sell", amount: sellAmount.toString() };
+    }
+  }
+
+  // If we can't make the preferred trade, try the opposite
+  if (currentUsdtWei >= buyAmount) {
+    return { action: "buy", amount: buyAmount.toString() };
+  } else if (currentTokenWei >= sellAmount) {
+    return { action: "sell", amount: sellAmount.toString() };
+  }
+
+  // If neither trade is possible, pause
+  return { action: "pause", amount: "0" };
+}
+
+/**
+ * Log a trade
+ */
+async function logTrade(
+  bot: IMarketMakerBot,
+  action: string,
+  amount: string,
+  priceBefore: string,
+  priceAfter: string,
+  transactionHash: string,
+  success: boolean,
+  errorMessage?: string
+): Promise<void> {
+  try {
+    await MarketMakerModel.createLog({
+      botId: (bot._id as any).toString(),
+      userEmail: bot.userEmail,
+      tokenAddress: bot.tokenAddress,
+      action: action as "buy" | "sell" | "pause" | "error" | "start" | "stop",
+      amount,
+      priceBefore,
+      priceAfter,
+      transactionHash: transactionHash || undefined,
+      usdtBalanceAfter: bot.currentUsdtBalance,
+      tokenBalanceAfter: bot.currentTokenBalance,
+      success,
+      errorMessage,
+    });
+  } catch (error) {
+    console.error(`❌ [MARKET MAKER] Error logging trade:`, error);
+  }
+}
+
+/**
+ * Execute a trade for a bot
+ */
+export async function executeTrade(botId: string): Promise<void> {
+  let botDoc: IMarketMakerBot | null = null;
+
+  try {
+    // Get fresh bot data
+    botDoc = await MarketMakerModel.updateBot(botId, {});
+    if (!botDoc || !botDoc.isActive) {
+      console.log(
+        `🤖 [MARKET MAKER] Bot ${botId} is not active, skipping trade`
+      );
+      return;
+    }
+
+    console.log(`💹 [MARKET MAKER] Executing trade for bot ${botId}`);
+
+    // Get current token price
+    const token = await TokenProjection.getTokenByAddress(botDoc.tokenAddress);
+    if (!token) {
+      throw new Error(`Token not found: ${botDoc.tokenAddress}`);
+    }
+
+    const currentPrice = token.price || "0";
+    console.log(
+      `💹 [MARKET MAKER] Current token price: ${formatEther(
+        BigInt(currentPrice)
+      )} USDT`
+    );
+
+    // Get real balances from bot's dedicated blockchain wallet
+    console.log(
+      `🔍 [MARKET MAKER] Fetching real balances from bot wallet: ${botDoc.botWalletAddress}...`
+    );
+    const realBalances = await WalletService.getUsdtAndTokenBalances(
+      botDoc.botWalletAddress as `0x${string}`,
+      botDoc.tokenAddress as `0x${string}`
+    );
+
+    console.log(`💰 [MARKET MAKER] Real balances:`, {
+      usdtBalance: formatEther(BigInt(realBalances.usdtBalance)) + " USDT",
+      tokenBalance: formatEther(BigInt(realBalances.tokenBalance)) + " tokens",
+      storedUsdtBalance:
+        formatEther(BigInt(botDoc.currentUsdtBalance)) + " USDT (stored)",
+      storedTokenBalance:
+        formatEther(BigInt(botDoc.currentTokenBalance)) + " tokens (stored)",
+    });
+
+    // Determine trade action and size using real balances
+    const tradeDecision = makeTradeDecision(
+      botDoc,
+      realBalances.usdtBalance,
+      realBalances.tokenBalance,
+      currentPrice
+    );
+
+    if (tradeDecision.action === "pause") {
+      console.log(
+        `⏸️ [MARKET MAKER] Bot ${botId} pausing - balanced or no funds`
+      );
+      await logTrade(
+        botDoc,
+        "pause",
+        "0",
+        currentPrice,
+        currentPrice,
+        "",
+        false,
+        "Pausing due to balance constraints"
+      );
+      await scheduleNextTrade(botId);
+      return;
+    }
+
+    // Execute the trade
+    let transactionHash = "";
+    let success = false;
+    let errorMessage = "";
+    let newPrice = currentPrice;
+
+    if (tradeDecision.action === "buy") {
+      const result = await BuyTokensCommand.executeWithWallet(
+        botDoc.botWalletAddress,
+        botDoc.botPrivateKey,
+        {
+          tokenAddress: botDoc.tokenAddress,
+          usdtAmount: formatEther(BigInt(tradeDecision.amount)),
+        }
+      );
+
+      success = result.success;
+      transactionHash = result.transactionHash;
+      errorMessage = result.error || "";
+
+      if (success) {
+        // Get real balances from bot wallet after successful trade
+        const updatedRealBalances = await WalletService.getUsdtAndTokenBalances(
+          botDoc.botWalletAddress as `0x${string}`,
+          botDoc.tokenAddress as `0x${string}`
+        );
+
+        console.log(`✅ [MARKET MAKER] Updated real balances after buy:`, {
+          usdtBalance:
+            formatEther(BigInt(updatedRealBalances.usdtBalance)) + " USDT",
+          tokenBalance:
+            formatEther(BigInt(updatedRealBalances.tokenBalance)) + " tokens",
+        });
+
+        // Update bot with real balances and trade statistics
+        await MarketMakerModel.updateBot(botId, {
+          currentUsdtBalance: updatedRealBalances.usdtBalance,
+          currentTokenBalance: updatedRealBalances.tokenBalance,
+          totalTrades: botDoc.totalTrades + 1,
+          totalBuyVolume: (
+            BigInt(botDoc.totalBuyVolume) + BigInt(tradeDecision.amount)
+          ).toString(),
+          lastTradeAt: new Date(),
+        });
+
+        // Get new price after trade with timeout for indexing
+        newPrice = await waitForPriceUpdate(
+          botDoc.tokenAddress,
+          currentPrice,
+          30000 // 30 second timeout
+        );
+
+        // Update botDoc in memory for accurate logging
+        botDoc.currentUsdtBalance = updatedRealBalances.usdtBalance;
+        botDoc.currentTokenBalance = updatedRealBalances.tokenBalance;
+      }
+    } else if (tradeDecision.action === "sell") {
+      const result = await SellTokensCommand.executeWithWallet(
+        botDoc.botWalletAddress,
+        botDoc.botPrivateKey,
+        {
+          tokenAddress: botDoc.tokenAddress,
+          tokenAmount: formatEther(BigInt(tradeDecision.amount)),
+        }
+      );
+
+      success = result.success;
+      transactionHash = result.transactionHash;
+      errorMessage = result.error || "";
+
+      if (success) {
+        // Get real balances from bot wallet after successful trade
+        const updatedRealBalances = await WalletService.getUsdtAndTokenBalances(
+          botDoc.botWalletAddress as `0x${string}`,
+          botDoc.tokenAddress as `0x${string}`
+        );
+
+        console.log(`✅ [MARKET MAKER] Updated real balances after sell:`, {
+          usdtBalance:
+            formatEther(BigInt(updatedRealBalances.usdtBalance)) + " USDT",
+          tokenBalance:
+            formatEther(BigInt(updatedRealBalances.tokenBalance)) + " tokens",
+        });
+
+        // Update bot with real balances and trade statistics
+        await MarketMakerModel.updateBot(botId, {
+          currentUsdtBalance: updatedRealBalances.usdtBalance,
+          currentTokenBalance: updatedRealBalances.tokenBalance,
+          totalTrades: botDoc.totalTrades + 1,
+          totalSellVolume: (
+            BigInt(botDoc.totalSellVolume) + BigInt(tradeDecision.amount)
+          ).toString(),
+          lastTradeAt: new Date(),
+        });
+
+        // Get new price after trade with timeout for indexing
+        newPrice = await waitForPriceUpdate(
+          botDoc.tokenAddress,
+          currentPrice,
+          30000 // 30 second timeout
+        );
+
+        // Update botDoc in memory for accurate logging
+        botDoc.currentUsdtBalance = updatedRealBalances.usdtBalance;
+        botDoc.currentTokenBalance = updatedRealBalances.tokenBalance;
+      }
+    }
+
+    // Log the trade
+    await logTrade(
+      botDoc,
+      tradeDecision.action,
+      tradeDecision.amount,
+      currentPrice,
+      newPrice,
+      transactionHash,
+      success,
+      errorMessage
+    );
+
+    if (success) {
+      console.log(`🧠 [MARKET MAKER] Analyzing trade effectiveness...`);
+
+      // Analyze price impact and growth progress
+      const priceAnalysis = await analyzePriceImpact(
+        tradeDecision.action,
+        currentPrice,
+        newPrice,
+        botDoc.targetGrowthPerHour
+      );
+
+      const growthProgress = await calculateGrowthProgress(botDoc);
+
+      // Adjust strategy based on analysis
+      await adjustTradingStrategy(botId, priceAnalysis, growthProgress);
+
+      console.log(
+        `✅ [MARKET MAKER] Trade analysis completed for bot ${botId}`
+      );
+    }
+
+    // Schedule next trade
+    await scheduleNextTrade(botId);
+  } catch (error) {
+    console.error(
+      `❌ [MARKET MAKER] Error executing trade for bot ${botId}:`,
+      error
+    );
+
+    if (botDoc) {
+      // Log error
+      await logTrade(
+        botDoc,
+        "error",
+        "0",
+        "0",
+        "0",
+        "",
+        false,
+        error instanceof Error ? error.message : "Unknown error"
+      );
+
+      // Schedule next trade with delay on error
+      setTimeout(() => scheduleNextTrade(botId), 30000); // 30 second delay on error
+    }
+  }
+}
