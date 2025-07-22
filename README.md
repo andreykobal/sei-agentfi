@@ -4,6 +4,8 @@
 
 **SEI: AgentFi** - _AI-native DeFi platform for real-time insights and autonomous trading_
 
+![Create-Next-App-07-22-2025_06_17_AM](https://github.com/user-attachments/assets/ce0a7259-17bd-429e-96ec-71890920a1cc)
+
 ## 2️⃣ Problem
 
 Launching tokens in DeFi remains an unstructured process: new projects often start without real liquidity, without market activity, and without access to algorithmic support or high-quality real-time analytics.
