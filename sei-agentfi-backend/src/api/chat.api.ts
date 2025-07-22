@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { verifyJWT } from "../middlewares/auth.middleware";
-import { openAIService } from "../infrastructure/openai.service";
+import { openAIService } from "../infrastructure/chat.service";
 
 const chat = new Hono();
 

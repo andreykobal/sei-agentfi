@@ -1,0 +1,714 @@
+import { TokenProjection } from "../../projections/token.projection";
+import { User } from "../../models/user.model";
+import {
+  CreateTokenCommand,
+  type CreateTokenParams,
+} from "../../application/create-token.command";
+import {
+  BuyTokensCommand,
+  type BuyTokensParams,
+} from "../../application/buy-tokens.command";
+import {
+  SellTokensCommand,
+  type SellTokensParams,
+} from "../../application/sell-tokens.command";
+import { WalletService } from "../wallet.service";
+import { PLATFORM_KNOWLEDGE_BASE } from "../knowledge-base.util";
+import { formatTokenFinancials, weiToEth } from "./helpers";
+
+/**
+ * Execute tool functions
+ */
+export async function executeFunction(
+  name: string,
+  args: any,
+  userEmail?: string,
+  currentTokenAddress?: string
+): Promise<string> {
+  console.log(
+    `[DEBUG] Executing function: ${name} with args:`,
+    JSON.stringify(args)
+  );
+  try {
+    switch (name) {
+      case "getAllTokens":
+        const allTokens = await TokenProjection.getAllTokens();
+        const limitedTokens = args.limit
+          ? allTokens.slice(0, args.limit)
+          : allTokens;
+        const getAllResult = JSON.stringify({
+          success: true,
+          count: limitedTokens.length,
+          tokens: limitedTokens.map((token) =>
+            formatTokenFinancials({
+              name: token.name,
+              symbol: token.symbol,
+              tokenAddress: token.tokenAddress,
+              creator: token.creator,
+              description: token.description,
+              image: token.image,
+              website: token.website,
+              twitter: token.twitter,
+              telegram: token.telegram,
+              discord: token.discord,
+              decimals: token.decimals,
+              price: token.price,
+              marketCap: token.marketCap,
+              totalUsdtRaised: token.totalUsdtRaised,
+              volume24hBuy: token.volume24hBuy,
+              volume24hSell: token.volume24hSell,
+              volume24hTotal: token.volume24hTotal,
+              timestamp: token.timestamp,
+              blockNumber: token.blockNumber,
+              createdAt: token.createdAt,
+            })
+          ),
+        });
+        console.log(
+          `[DEBUG] getAllTokens result: ${limitedTokens.length} tokens, result length: ${getAllResult.length}`
+        );
+        return getAllResult;
+
+      case "getTokensByCreator":
+        const creatorTokens = await TokenProjection.getTokensByCreator(
+          args.creator
+        );
+        return JSON.stringify({
+          success: true,
+          count: creatorTokens.length,
+          creator: args.creator,
+          tokens: creatorTokens.map((token) =>
+            formatTokenFinancials({
+              name: token.name,
+              symbol: token.symbol,
+              tokenAddress: token.tokenAddress,
+              creator: token.creator,
+              description: token.description,
+              image: token.image,
+              website: token.website,
+              twitter: token.twitter,
+              telegram: token.telegram,
+              discord: token.discord,
+              decimals: token.decimals,
+              price: token.price,
+              marketCap: token.marketCap,
+              totalUsdtRaised: token.totalUsdtRaised,
+              volume24hBuy: token.volume24hBuy,
+              volume24hSell: token.volume24hSell,
+              volume24hTotal: token.volume24hTotal,
+              timestamp: token.timestamp,
+              blockNumber: token.blockNumber,
+              createdAt: token.createdAt,
+            })
+          ),
+        });
+
+      case "getTokenByAddress":
+        const token = await TokenProjection.getTokenByAddress(args.address);
+        if (!token) {
+          return JSON.stringify({
+            success: false,
+            error: "Token not found",
+            address: args.address,
+          });
+        }
+        return JSON.stringify({
+          success: true,
+          token: formatTokenFinancials({
+            name: token.name,
+            symbol: token.symbol,
+            tokenAddress: token.tokenAddress,
+            creator: token.creator,
+            description: token.description,
+            image: token.image,
+            website: token.website,
+            twitter: token.twitter,
+            telegram: token.telegram,
+            discord: token.discord,
+            decimals: token.decimals,
+            price: token.price,
+            marketCap: token.marketCap,
+            totalUsdtRaised: token.totalUsdtRaised,
+            volume24hBuy: token.volume24hBuy,
+            volume24hSell: token.volume24hSell,
+            volume24hTotal: token.volume24hTotal,
+            timestamp: token.timestamp,
+            blockNumber: token.blockNumber,
+            createdAt: token.createdAt,
+          }),
+        });
+
+      case "getRecentTokens":
+        const limit = args.limit || 10;
+        const recentTokens = await TokenProjection.getRecentTokens(limit);
+        return JSON.stringify({
+          success: true,
+          count: recentTokens.length,
+          tokens: recentTokens.map((token) =>
+            formatTokenFinancials({
+              name: token.name,
+              symbol: token.symbol,
+              tokenAddress: token.tokenAddress,
+              creator: token.creator,
+              description: token.description,
+              image: token.image,
+              website: token.website,
+              twitter: token.twitter,
+              telegram: token.telegram,
+              discord: token.discord,
+              decimals: token.decimals,
+              price: token.price,
+              marketCap: token.marketCap,
+              totalUsdtRaised: token.totalUsdtRaised,
+              volume24hBuy: token.volume24hBuy,
+              volume24hSell: token.volume24hSell,
+              volume24hTotal: token.volume24hTotal,
+              timestamp: token.timestamp,
+              blockNumber: token.blockNumber,
+              createdAt: token.createdAt,
+            })
+          ),
+        });
+
+      case "collectTokenCreationData":
+        // This is a structured data collection tool - just return the collected data
+        return JSON.stringify({
+          success: true,
+          message: "Token data collected successfully",
+          tokenData: {
+            name: args.name,
+            symbol: args.symbol?.toUpperCase(),
+            description: args.description,
+            image: args.image || "",
+            website: args.website || "",
+            twitter: args.twitter || "",
+            telegram: args.telegram || "",
+            discord: args.discord || "",
+          },
+        });
+
+      case "createToken":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required for token creation",
+          });
+        }
+
+        console.log(`[DEBUG] Creating token for user: ${userEmail}`);
+        console.log(`[DEBUG] Token data:`, args.tokenData);
+
+        // Prepare token creation parameters
+        const tokenParams: CreateTokenParams = {
+          name: args.tokenData.name.trim(),
+          symbol: args.tokenData.symbol.trim().toUpperCase(),
+          description: args.tokenData.description.trim(),
+          image: args.tokenData.image?.trim() || "",
+          website: args.tokenData.website?.trim() || "",
+          twitter: args.tokenData.twitter?.trim() || "",
+          telegram: args.tokenData.telegram?.trim() || "",
+          discord: args.tokenData.discord?.trim() || "",
+        };
+
+        // Execute token creation command
+        const createResult = await CreateTokenCommand.execute(
+          userEmail,
+          tokenParams
+        );
+
+        if (createResult.success) {
+          const explorerLink = `https://testnet.seistream.app/transactions/${createResult.transactionHash}`;
+          return JSON.stringify({
+            success: true,
+            message: "Token created successfully!",
+            transactionHash: createResult.transactionHash,
+            explorerLink: explorerLink,
+            tokenAddress: createResult.tokenAddress,
+            tokenData: tokenParams,
+          });
+        } else {
+          const response: any = {
+            success: false,
+            error: createResult.error || "Token creation failed",
+          };
+          // Include explorer link if transaction hash is available even on failure
+          if (createResult.transactionHash) {
+            response.transactionHash = createResult.transactionHash;
+            response.explorerLink = `https://testnet.seistream.app/transactions/${createResult.transactionHash}`;
+          }
+          return JSON.stringify(response);
+        }
+
+      case "getUserBalances":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to get balances",
+          });
+        }
+
+        console.log(`[DEBUG] Getting balances for user: ${userEmail}`);
+
+        try {
+          // Get user from database
+          const user = await User.findOne({ email: userEmail });
+          if (!user || !user.walletAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "User not found or no wallet address associated",
+            });
+          }
+
+          // Get basic balances using WalletService
+          const balances = await WalletService.getUserBalances(
+            user.walletAddress as `0x${string}`
+          );
+
+          // Get all token balances
+          const tokenBalances = await WalletService.getAllTokenBalances(
+            user.walletAddress as `0x${string}`
+          );
+
+          // Format balances from wei to ETH/tokens
+          // All tokens in our platform use 18 decimals, so we always divide by 10^18
+          const formattedBalances = {
+            ethBalance: weiToEth(balances.ethBalance).toFixed(6),
+            usdtBalance: weiToEth(balances.usdtBalance).toFixed(2),
+          };
+
+          // Format token balances - Always use 18 decimals since all platform tokens are 18 decimals
+          const formattedTokenBalances = tokenBalances.map((token) => ({
+            tokenAddress: token.tokenAddress,
+            name: token.name,
+            symbol: token.symbol,
+            balance: weiToEth(token.balance).toFixed(6), // Use weiToEth for consistency
+            decimals: token.decimals,
+          }));
+
+          console.log(`[DEBUG] User balances retrieved:`, {
+            ...formattedBalances,
+            tokenCount: formattedTokenBalances.length,
+          });
+
+          return JSON.stringify({
+            success: true,
+            balances: formattedBalances,
+            tokenBalances: formattedTokenBalances,
+            walletAddress: user.walletAddress,
+            message: `Retrieved balances for ${formattedTokenBalances.length} tokens with non-zero balances`,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting user balances:`, error);
+          return JSON.stringify({
+            success: false,
+            error: "Failed to retrieve user balances",
+          });
+        }
+
+      case "getUserTokenBalance":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to get token balance",
+          });
+        }
+
+        console.log(`[DEBUG] Getting token balance for user: ${userEmail}`);
+
+        try {
+          // Get user from database
+          const user = await User.findOne({ email: userEmail });
+          if (!user || !user.walletAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "User not found or no wallet address associated",
+            });
+          }
+
+          // Determine token address to check
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          console.log(`[DEBUG] Checking token balance for:`, {
+            userWallet: user.walletAddress,
+            tokenAddress,
+          });
+
+          // Get token balance using WalletService
+          const tokenBalance = await WalletService.getTokenBalance(
+            user.walletAddress as `0x${string}`,
+            tokenAddress as `0x${string}`
+          );
+
+          const formattedBalance = weiToEth(tokenBalance).toFixed(6);
+
+          console.log(`[DEBUG] User token balance retrieved:`, {
+            tokenAddress,
+            balance: formattedBalance,
+          });
+
+          return JSON.stringify({
+            success: true,
+            tokenBalance: formattedBalance,
+            tokenAddress,
+            walletAddress: user.walletAddress,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting user token balance:`, error);
+          return JSON.stringify({
+            success: false,
+            error: "Failed to retrieve user token balance",
+          });
+        }
+
+      case "buyTokens":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to buy tokens",
+          });
+        }
+
+        console.log(`[DEBUG] Buying tokens for user: ${userEmail}`);
+        console.log(`[DEBUG] Buy parameters:`, args);
+
+        try {
+          // Get user from database
+          const user = await User.findOne({ email: userEmail });
+          if (!user || !user.walletAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "User not found or no wallet address associated",
+            });
+          }
+
+          // Determine token address to buy
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to buy tokens. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          // Get token details to get price
+          const tokenData = await TokenProjection.getTokenByAddress(
+            tokenAddress
+          );
+          if (!tokenData) {
+            return JSON.stringify({
+              success: false,
+              error: "Token not found",
+              tokenAddress,
+            });
+          }
+
+          // Validate USDT amount (keep in human-readable format)
+          const usdtAmountFloat = parseFloat(args.usdtAmount);
+          if (isNaN(usdtAmountFloat) || usdtAmountFloat <= 0) {
+            return JSON.stringify({
+              success: false,
+              error: "Invalid USDT amount specified.",
+            });
+          }
+
+          console.log(
+            `[DEBUG] Attempting to buy ${args.usdtAmount} USDT worth of tokens for token: ${tokenData.name}`
+          );
+
+          // Prepare buy tokens parameters (command handles wei conversion internally)
+          const buyParams: BuyTokensParams = {
+            tokenAddress: tokenAddress,
+            usdtAmount: args.usdtAmount, // Keep in human-readable format
+          };
+
+          // Execute buy transaction using BuyTokensCommand
+          const buyResult = await BuyTokensCommand.execute(
+            userEmail,
+            buyParams
+          );
+
+          if (buyResult.success) {
+            const explorerLink = `https://testnet.seistream.app/transactions/${buyResult.transactionHash}`;
+            return JSON.stringify({
+              success: true,
+              message: `Tokens purchased successfully! Transaction hash: ${buyResult.transactionHash}`,
+              transactionHash: buyResult.transactionHash,
+              explorerLink: explorerLink,
+              tokenAddress,
+              tokenData: tokenData,
+              usdtAmount: args.usdtAmount,
+            });
+          } else {
+            const response: any = {
+              success: false,
+              error: buyResult.error || "Failed to purchase tokens",
+              tokenAddress,
+              tokenData: tokenData,
+              usdtAmount: args.usdtAmount,
+            };
+            // Include explorer link if transaction hash is available even on failure
+            if (buyResult.transactionHash) {
+              response.transactionHash = buyResult.transactionHash;
+              response.explorerLink = `https://testnet.seistream.app/transactions/${buyResult.transactionHash}`;
+            }
+            return JSON.stringify(response);
+          }
+        } catch (error) {
+          console.error(`[ERROR] Error buying tokens:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to purchase tokens: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "sellTokens":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to sell tokens",
+          });
+        }
+
+        console.log(`[DEBUG] Selling tokens for user: ${userEmail}`);
+        console.log(`[DEBUG] Sell parameters:`, args);
+
+        try {
+          // Get user from database
+          const user = await User.findOne({ email: userEmail });
+          if (!user || !user.walletAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "User not found or no wallet address associated",
+            });
+          }
+
+          // Determine token address to sell
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to sell tokens. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          // Get token details to get price
+          const tokenData = await TokenProjection.getTokenByAddress(
+            tokenAddress
+          );
+          if (!tokenData) {
+            return JSON.stringify({
+              success: false,
+              error: "Token not found",
+              tokenAddress,
+            });
+          }
+
+          // Validate token amount (keep in human-readable format)
+          const tokenAmountFloat = parseFloat(args.tokenAmount);
+          if (isNaN(tokenAmountFloat) || tokenAmountFloat <= 0) {
+            return JSON.stringify({
+              success: false,
+              error: "Invalid token amount specified.",
+            });
+          }
+
+          console.log(
+            `[DEBUG] Attempting to sell ${args.tokenAmount} tokens for token: ${tokenData.name}`
+          );
+
+          // Prepare sell tokens parameters (command handles wei conversion)
+          const sellParams: SellTokensParams = {
+            tokenAddress: tokenAddress,
+            tokenAmount: args.tokenAmount, // Keep in human-readable format
+          };
+
+          // Execute sell transaction using SellTokensCommand
+          const sellResult = await SellTokensCommand.execute(
+            userEmail,
+            sellParams
+          );
+
+          if (sellResult.success) {
+            const explorerLink = `https://testnet.seistream.app/transactions/${sellResult.transactionHash}`;
+            return JSON.stringify({
+              success: true,
+              message: `Tokens sold successfully! Transaction hash: ${sellResult.transactionHash}`,
+              transactionHash: sellResult.transactionHash,
+              explorerLink: explorerLink,
+              tokenAddress,
+              tokenData: tokenData,
+              tokenAmount: args.tokenAmount,
+            });
+          } else {
+            const response: any = {
+              success: false,
+              error: sellResult.error || "Failed to sell tokens",
+              tokenAddress,
+              tokenData: tokenData,
+              tokenAmount: args.tokenAmount,
+            };
+            // Include explorer link if transaction hash is available even on failure
+            if (sellResult.transactionHash) {
+              response.transactionHash = sellResult.transactionHash;
+              response.explorerLink = `https://testnet.seistream.app/transactions/${sellResult.transactionHash}`;
+            }
+            return JSON.stringify(response);
+          }
+        } catch (error) {
+          console.error(`[ERROR] Error selling tokens:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to sell tokens: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "getTokenHolders":
+        console.log(`[DEBUG] Getting token holders`);
+
+        try {
+          // Determine token address to get holders for
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to get holders. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          console.log(`[DEBUG] Getting holders for token:`, tokenAddress);
+
+          // Get holders using TokenProjection
+          const holders = await TokenProjection.getTokenHolders(tokenAddress);
+
+          if (holders === null) {
+            return JSON.stringify({
+              success: false,
+              error: "Token not found",
+              tokenAddress,
+            });
+          }
+
+          console.log(`[DEBUG] Holders retrieved:`, holders.length);
+
+          return JSON.stringify({
+            success: true,
+            holders,
+            tokenAddress,
+            count: holders.length,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting token holders:`, error);
+          return JSON.stringify({
+            success: false,
+            error: "Failed to retrieve token holders",
+          });
+        }
+
+      case "getTokenTransactions":
+        console.log(`[DEBUG] Getting token transactions`);
+
+        try {
+          // Determine token address to get transactions for
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to get transactions. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          const limit = Math.min(args.limit || 50, 100); // Cap at 100
+          console.log(
+            `[DEBUG] Getting transactions for token: ${tokenAddress}, limit: ${limit}`
+          );
+
+          // Get transactions using TokenProjection
+          const transactions = await TokenProjection.getRecentTransactions(
+            tokenAddress,
+            limit
+          );
+
+          // Format transactions with wei to human-readable conversion
+          const formattedTransactions = transactions.map((tx) => ({
+            ...tx,
+            amountInFormatted:
+              tx.type === "buy"
+                ? weiToEth(tx.amountIn).toFixed(2) + " USDT"
+                : weiToEth(tx.amountIn).toFixed(6) + " tokens",
+            amountOutFormatted:
+              tx.type === "buy"
+                ? weiToEth(tx.amountOut).toFixed(6) + " tokens"
+                : weiToEth(tx.amountOut).toFixed(2) + " USDT",
+          }));
+
+          console.log(`[DEBUG] Transactions retrieved:`, transactions.length);
+
+          return JSON.stringify({
+            success: true,
+            transactions: formattedTransactions,
+            tokenAddress,
+            count: transactions.length,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting token transactions:`, error);
+          return JSON.stringify({
+            success: false,
+            error: "Failed to retrieve token transactions",
+          });
+        }
+
+      case "getPlatformKnowledge":
+        console.log(`[DEBUG] Getting full platform knowledge base`);
+
+        try {
+          return JSON.stringify({
+            success: true,
+            knowledge: PLATFORM_KNOWLEDGE_BASE,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting platform knowledge:`, error);
+          return JSON.stringify({
+            success: false,
+            error: "Failed to retrieve platform knowledge",
+          });
+        }
+
+      default:
+        const unknownResult = JSON.stringify({
+          success: false,
+          error: `Unknown function: ${name}`,
+        });
+        console.log(`[DEBUG] Unknown function result: ${unknownResult}`);
+        return unknownResult;
+    }
+  } catch (error) {
+    console.error(`[ERROR] Error executing function ${name}:`, error);
+    console.error(
+      `[ERROR] Function execution stack:`,
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+    const errorResult = JSON.stringify({
+      success: false,
+      error: `Failed to execute ${name}: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    });
+    console.log(`[DEBUG] Function error result: ${errorResult}`);
+    return errorResult;
+  }
+}
