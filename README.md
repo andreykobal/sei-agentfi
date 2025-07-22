@@ -1,4 +1,4 @@
-# SEI AgentFi - Project Description
+# SEI AgentFi - AI-native DeFi platform
 
 ## 1️⃣ Project Name
 
