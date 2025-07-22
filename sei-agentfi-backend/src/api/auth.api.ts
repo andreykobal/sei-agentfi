@@ -178,6 +178,10 @@ auth.post("/verify-token", async (c) => {
       const privateKey = generatePrivateKey();
       const account = privateKeyToAccount(privateKey);
 
+      console.log(
+        `🔄 [AUTH] Creating new user: ${payload.email} with wallet: ${account.address}`
+      );
+
       // Create new user with wallet
       user = await UserModel.create({
         email: payload.email,
@@ -185,27 +189,47 @@ auth.post("/verify-token", async (c) => {
         privateKey: privateKey,
       });
 
-      // Fund the new user's wallet with 1000 USDT and 0.001 ETH
+      // Fund the new user's wallet with 10000 USDT and 0.1 ETH
+      // Wait for funding to complete before responding
       try {
+        console.log(`💰 [AUTH] Funding wallet for new user: ${payload.email}`);
         const { ethTxHash, usdtTxHash } = await WalletService.fundNewUser(
           account.address
         );
         console.log(
-          `Created new user: ${payload.email} with wallet: ${account.address}. Funded with ETH (${ethTxHash}) and USDT (${usdtTxHash})`
+          `✅ [AUTH] Successfully created and funded new user: ${payload.email} with wallet: ${account.address}. ETH: ${ethTxHash}, USDT: ${usdtTxHash}`
         );
       } catch (error) {
         console.error(
-          `Failed to fund wallet for user ${payload.email}:`,
+          `❌ [AUTH] Failed to fund wallet for user ${payload.email}:`,
           error
         );
-        // Continue with user creation even if funding fails
-        console.log(
-          `Created new user: ${payload.email} with wallet: ${account.address} (funding failed)`
+
+        // Delete the user if funding failed to keep data consistent
+        try {
+          await UserModel.deleteByEmail(payload.email);
+          console.log(
+            `🗑️ [AUTH] Cleaned up user ${payload.email} due to funding failure`
+          );
+        } catch (cleanupError) {
+          console.error(
+            `❌ [AUTH] Failed to cleanup user ${payload.email}:`,
+            cleanupError
+          );
+        }
+
+        return c.json(
+          {
+            error: "Failed to fund your wallet. Please try again later.",
+            details:
+              error instanceof Error ? error.message : "Unknown funding error",
+          },
+          500
         );
       }
     } else {
       console.log(
-        `User ${payload.email} already exists with wallet: ${user.walletAddress}`
+        `👤 [AUTH] Existing user ${payload.email} authenticated with wallet: ${user.walletAddress}`
       );
     }
 

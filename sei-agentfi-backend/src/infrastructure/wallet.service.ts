@@ -29,18 +29,39 @@ const walletClient = createWalletClient({
 export class WalletService {
   /**
    * Fund a new user wallet with 1000 USDT and 0.001 ETH
+   * Waits for both transactions to be confirmed before returning
    */
   static async fundNewUser(
     userAddress: Address
   ): Promise<{ ethTxHash: string; usdtTxHash: string }> {
     try {
-      // Send 0.001 ETH
+      console.log(
+        `🚀 [WalletService] Starting funding for user: ${userAddress}`
+      );
+
+      // Send 0.1 ETH
+      console.log("💰 [WalletService] Sending ETH...");
       const ethTxHash = await walletClient.sendTransaction({
         to: userAddress,
         value: parseEther("0.1"),
       });
 
+      // Wait for ETH transaction confirmation
+      console.log(
+        `⏳ [WalletService] Waiting for ETH transaction confirmation: ${ethTxHash}`
+      );
+      const ethReceipt = await publicClient.waitForTransactionReceipt({
+        hash: ethTxHash,
+        confirmations: 1,
+      });
+
+      if (ethReceipt.status !== "success") {
+        throw new Error(`ETH transaction failed: ${ethTxHash}`);
+      }
+      console.log(`✅ [WalletService] ETH transaction confirmed: ${ethTxHash}`);
+
       // Send 10000 USDT (18 decimals)
+      console.log("💰 [WalletService] Sending USDT...");
       const usdtTxHash = await walletClient.writeContract({
         address: USDT_ADDRESS as Address,
         abi: MockERC20Abi,
@@ -48,10 +69,33 @@ export class WalletService {
         args: [userAddress, parseUnits("10000", 18)],
       });
 
+      // Wait for USDT transaction confirmation
+      console.log(
+        `⏳ [WalletService] Waiting for USDT transaction confirmation: ${usdtTxHash}`
+      );
+      const usdtReceipt = await publicClient.waitForTransactionReceipt({
+        hash: usdtTxHash,
+        confirmations: 1,
+      });
+
+      if (usdtReceipt.status !== "success") {
+        throw new Error(`USDT transaction failed: ${usdtTxHash}`);
+      }
+      console.log(
+        `✅ [WalletService] USDT transaction confirmed: ${usdtTxHash}`
+      );
+
+      console.log(
+        `🎉 [WalletService] Successfully funded user ${userAddress} with ETH and USDT`
+      );
       return { ethTxHash, usdtTxHash };
     } catch (error) {
-      console.error("Error funding user wallet:", error);
-      throw new Error("Failed to fund user wallet");
+      console.error("❌ [WalletService] Error funding user wallet:", error);
+      throw new Error(
+        `Failed to fund user wallet: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
