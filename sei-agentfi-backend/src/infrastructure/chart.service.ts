@@ -1,24 +1,23 @@
 import { TokenPurchase, TokenSale } from "../models/token.model";
 
 // Constants
-const THIRTY_MINUTES_IN_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
-const THIRTY_MINUTES_IN_SECONDS = 30 * 60; // 30 minutes in seconds
+const FIVE_MINUTES_IN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+const FIVE_MINUTES_IN_SECONDS = 5 * 60; // 5 minutes in seconds
 
 /**
- * Floors a timestamp to the nearest 30-minute interval
+ * Floors a timestamp to the nearest 5-minute interval
  * @param timestamp Timestamp in seconds
  * @returns Floored timestamp in seconds
  */
 function floorTimestampToInterval(timestamp: number): number {
   return (
-    Math.floor(timestamp / THIRTY_MINUTES_IN_SECONDS) *
-    THIRTY_MINUTES_IN_SECONDS
+    Math.floor(timestamp / FIVE_MINUTES_IN_SECONDS) * FIVE_MINUTES_IN_SECONDS
   );
 }
 
 /**
- * Gets the current timestamp floored to a 30-minute interval
- * @returns Current time floored to the 30-minute interval, in seconds
+ * Gets the current timestamp floored to a 5-minute interval
+ * @returns Current time floored to the 5-minute interval, in seconds
  */
 function getCurrentIntervalTimestamp(): number {
   const currentTime = Math.floor(Date.now() / 1000);
@@ -36,15 +35,15 @@ export interface ChartDataPoint {
 export interface ChartDataResponse {
   tokenAddress: string;
   candlestickData: ChartDataPoint[];
-  interval: string; // "30m"
+  interval: string; // "5m"
 }
 
 export class ChartService {
   /**
-   * Get OHLC chart data for a token with 30-minute intervals
+   * Get OHLC chart data for a token with 5-minute intervals
    * @param tokenAddress The token address to get chart data for
    * @param days Number of days of historical data to fetch (default: 7)
-   * @returns Chart data with 30-minute OHLC candlesticks
+   * @returns Chart data with 5-minute OHLC candlesticks
    */
   static async getTokenChartData(
     tokenAddress: string,
@@ -105,7 +104,7 @@ export class ChartService {
         return {
           tokenAddress,
           candlestickData: [],
-          interval: "30m",
+          interval: "5m",
         };
       }
 
@@ -119,7 +118,7 @@ export class ChartService {
       return {
         tokenAddress,
         candlestickData,
-        interval: "30m",
+        interval: "5m",
       };
     } catch (error) {
       console.error(
@@ -152,15 +151,15 @@ export class ChartService {
     const firstTimestamp = firstEvent.timestamp;
     const lastInterval = getCurrentIntervalTimestamp();
 
-    // Round first timestamp down to nearest 30-minute interval
+    // Round first timestamp down to nearest 5-minute interval
     const firstInterval = floorTimestampToInterval(firstTimestamp);
 
-    // Create map for all 30-minute intervals in the time range
+    // Create map for all 5-minute intervals in the time range
     const allIntervals = new Map<number, typeof priceEvents>();
     for (
       let t = firstInterval;
       t <= lastInterval;
-      t += THIRTY_MINUTES_IN_SECONDS
+      t += FIVE_MINUTES_IN_SECONDS
     ) {
       allIntervals.set(t, []);
     }
