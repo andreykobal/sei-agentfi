@@ -15,6 +15,8 @@ import {
 import { WalletService } from "../wallet.service";
 import { PLATFORM_KNOWLEDGE_BASE } from "../knowledge-base.util";
 import { formatTokenFinancials, weiToEth } from "./helpers";
+import { MarketMakerService } from "../market-maker.service";
+import { MarketMakerModel } from "../../models/market-maker.model";
 
 /**
  * Execute tool functions
@@ -685,6 +687,394 @@ export async function executeFunction(
           return JSON.stringify({
             success: false,
             error: "Failed to retrieve platform knowledge",
+          });
+        }
+
+      case "createMarketMakerBot":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to create market maker bot",
+          });
+        }
+
+        console.log(`[DEBUG] Creating market maker bot for user: ${userEmail}`);
+        console.log(`[DEBUG] Bot parameters:`, args);
+
+        try {
+          // Validate required parameters
+          const { tokenAddress, targetGrowthPerHour, budget } = args;
+
+          if (!tokenAddress || !targetGrowthPerHour || !budget) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Missing required parameters: tokenAddress, targetGrowthPerHour, and budget are all required",
+            });
+          }
+
+          // Validate numeric values
+          if (
+            typeof targetGrowthPerHour !== "number" ||
+            targetGrowthPerHour <= 0
+          ) {
+            return JSON.stringify({
+              success: false,
+              error: "targetGrowthPerHour must be a positive number",
+            });
+          }
+
+          // Validate budget
+          const budgetFloat = parseFloat(budget);
+          if (isNaN(budgetFloat) || budgetFloat <= 0) {
+            return JSON.stringify({
+              success: false,
+              error: "Budget must be a positive number",
+            });
+          }
+
+          // Create the bot
+          const bot = await MarketMakerService.createBot(userEmail, {
+            tokenAddress: tokenAddress.trim(),
+            targetGrowthPerHour,
+            budget: budget.trim(),
+          });
+
+          console.log(
+            `[DEBUG] Market maker bot created successfully: ${(
+              bot._id as any
+            ).toString()}`
+          );
+
+          return JSON.stringify({
+            success: true,
+            message: "Market maker bot created successfully",
+            bot: {
+              botId: (bot._id as any).toString(),
+              tokenAddress: bot.tokenAddress,
+              targetGrowthPerHour: bot.targetGrowthPerHour,
+              budget: bot.budget,
+              isActive: bot.isActive,
+              createdAt: bot.createdAt,
+            },
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error creating market maker bot:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to create market maker bot: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "startMarketMakerBot":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to start market maker bot",
+          });
+        }
+
+        console.log(`[DEBUG] Starting market maker bot for user: ${userEmail}`);
+
+        try {
+          const tokenAddress = args.tokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "Token address is required to start bot",
+            });
+          }
+
+          await MarketMakerService.startBot(userEmail, tokenAddress);
+
+          console.log(`[DEBUG] Market maker bot started successfully`);
+
+          return JSON.stringify({
+            success: true,
+            message: "Market maker bot started successfully",
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error starting market maker bot:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to start market maker bot: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "stopMarketMakerBot":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to stop market maker bot",
+          });
+        }
+
+        console.log(`[DEBUG] Stopping market maker bot for user: ${userEmail}`);
+
+        try {
+          const tokenAddress = args.tokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "Token address is required to stop bot",
+            });
+          }
+
+          await MarketMakerService.stopBot(userEmail, tokenAddress);
+
+          console.log(`[DEBUG] Market maker bot stopped successfully`);
+
+          return JSON.stringify({
+            success: true,
+            message: "Market maker bot stopped successfully",
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error stopping market maker bot:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to stop market maker bot: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "deleteMarketMakerBot":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to delete market maker bot",
+          });
+        }
+
+        console.log(`[DEBUG] Deleting market maker bot for user: ${userEmail}`);
+
+        try {
+          const tokenAddress = args.tokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error: "Token address is required to delete bot",
+            });
+          }
+
+          await MarketMakerService.deleteBot(userEmail, tokenAddress);
+
+          console.log(`[DEBUG] Market maker bot deleted successfully`);
+
+          return JSON.stringify({
+            success: true,
+            message:
+              "Market maker bot deleted successfully. All funds have been returned to your wallet.",
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error deleting market maker bot:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to delete market maker bot: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "getMarketMakerBotStatus":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to get market maker bot status",
+          });
+        }
+
+        console.log(
+          `[DEBUG] Getting market maker bot status for user: ${userEmail}`
+        );
+
+        try {
+          // Determine token address to get status for
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to get bot status. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          const status = await MarketMakerService.getBotStatus(
+            userEmail,
+            tokenAddress
+          );
+
+          if (!status) {
+            return JSON.stringify({
+              success: false,
+              error: "Market maker bot not found for this token",
+            });
+          }
+
+          console.log(`[DEBUG] Market maker bot status retrieved successfully`);
+
+          return JSON.stringify({
+            success: true,
+            status: {
+              tokenAddress,
+              isActive: status.isActive,
+              totalTrades: status.totalTrades,
+              totalBuyVolume:
+                weiToEth(status.totalBuyVolume).toFixed(2) + " USDT",
+              totalSellVolume:
+                weiToEth(status.totalSellVolume).toFixed(6) + " tokens",
+              currentUsdtBalance:
+                weiToEth(status.currentUsdtBalance).toFixed(2) + " USDT",
+              currentTokenBalance:
+                weiToEth(status.currentTokenBalance).toFixed(6) + " tokens",
+              lastTradeAt: status.lastTradeAt,
+              nextTradeAt: status.nextTradeAt,
+            },
+          });
+        } catch (error) {
+          console.error(
+            `[ERROR] Error getting market maker bot status:`,
+            error
+          );
+          return JSON.stringify({
+            success: false,
+            error: `Failed to get market maker bot status: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "getUserMarketMakerBots":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to get user's market maker bots",
+          });
+        }
+
+        console.log(
+          `[DEBUG] Getting all market maker bots for user: ${userEmail}`
+        );
+
+        try {
+          const bots = await MarketMakerModel.findUserBots(userEmail);
+
+          console.log(
+            `[DEBUG] Found ${bots.length} market maker bots for user`
+          );
+
+          const formattedBots = bots.map((bot) => ({
+            botId: (bot._id as any).toString(),
+            tokenAddress: bot.tokenAddress,
+            targetGrowthPerHour: bot.targetGrowthPerHour,
+            budget: weiToEth(bot.budget).toFixed(2) + " USDT",
+            isActive: bot.isActive,
+            totalTrades: bot.totalTrades,
+            totalBuyVolume: weiToEth(bot.totalBuyVolume).toFixed(2) + " USDT",
+            totalSellVolume:
+              weiToEth(bot.totalSellVolume).toFixed(6) + " tokens",
+            currentUsdtBalance:
+              weiToEth(bot.currentUsdtBalance).toFixed(2) + " USDT",
+            currentTokenBalance:
+              weiToEth(bot.currentTokenBalance).toFixed(6) + " tokens",
+            lastTradeAt: bot.lastTradeAt,
+            nextTradeAt: bot.nextTradeAt,
+            createdAt: bot.createdAt,
+          }));
+
+          return JSON.stringify({
+            success: true,
+            bots: formattedBots,
+            count: formattedBots.length,
+          });
+        } catch (error) {
+          console.error(
+            `[ERROR] Error getting user's market maker bots:`,
+            error
+          );
+          return JSON.stringify({
+            success: false,
+            error: `Failed to get user's market maker bots: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          });
+        }
+
+      case "getMarketMakerBotLogs":
+        if (!userEmail) {
+          return JSON.stringify({
+            success: false,
+            error: "User email is required to get market maker bot logs",
+          });
+        }
+
+        console.log(
+          `[DEBUG] Getting market maker bot logs for user: ${userEmail}`
+        );
+
+        try {
+          // Determine token address to get logs for
+          const tokenAddress = args.tokenAddress || currentTokenAddress;
+          if (!tokenAddress) {
+            return JSON.stringify({
+              success: false,
+              error:
+                "Token address is required to get bot logs. Either provide tokenAddress parameter or use this function in a token context.",
+            });
+          }
+
+          const limit = Math.min(args.limit || 50, 100); // Cap at 100
+
+          const logs = await MarketMakerModel.getUserLogs(
+            userEmail,
+            tokenAddress,
+            limit
+          );
+
+          console.log(`[DEBUG] Found ${logs.length} logs for market maker bot`);
+
+          const formattedLogs = logs.map((log) => ({
+            action: log.action,
+            amount:
+              log.amount === "0"
+                ? "N/A"
+                : log.action === "buy"
+                ? weiToEth(log.amount).toFixed(2) + " USDT"
+                : log.action === "sell"
+                ? weiToEth(log.amount).toFixed(6) + " tokens"
+                : log.amount,
+            priceBefore:
+              log.priceBefore === "0"
+                ? "N/A"
+                : weiToEth(log.priceBefore).toFixed(6) + " USDT",
+            priceAfter:
+              log.priceAfter === "0"
+                ? "N/A"
+                : weiToEth(log.priceAfter).toFixed(6) + " USDT",
+            transactionHash: log.transactionHash,
+            success: log.success,
+            errorMessage: log.errorMessage,
+            timestamp: log.timestamp,
+            nextTradeScheduledAt: log.nextTradeScheduledAt,
+          }));
+
+          return JSON.stringify({
+            success: true,
+            logs: formattedLogs,
+            tokenAddress,
+            count: formattedLogs.length,
+          });
+        } catch (error) {
+          console.error(`[ERROR] Error getting market maker bot logs:`, error);
+          return JSON.stringify({
+            success: false,
+            error: `Failed to get market maker bot logs: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
           });
         }
 

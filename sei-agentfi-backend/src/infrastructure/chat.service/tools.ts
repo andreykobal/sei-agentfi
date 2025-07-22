@@ -312,5 +312,147 @@ export function getTools(): OpenAITool[] {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "createMarketMakerBot",
+        description:
+          "Create a new market maker bot (also called autonomous agent, liquidity automation bot, or trading bot) for a specific token. The bot will automatically buy and sell tokens to create liquidity and promote growth. Only call this after collecting all required information from the user.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token to create a bot for",
+            },
+            targetGrowthPerHour: {
+              type: "number",
+              description:
+                "Target growth percentage per hour (e.g., 1 for 1% growth per hour). Typical range: 0.5-5%",
+            },
+            budget: {
+              type: "string",
+              description:
+                "Total budget in USDT for the bot to use (e.g., '100' for 100 USDT)",
+            },
+          },
+          required: ["tokenAddress", "targetGrowthPerHour", "budget"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "startMarketMakerBot",
+        description:
+          "Start a market maker bot that has been created but is not currently running. This will begin the automated trading process.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token for the bot to start",
+            },
+          },
+          required: ["tokenAddress"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "stopMarketMakerBot",
+        description:
+          "Stop a running market maker bot. This will pause the automated trading but keep the bot and its funds intact.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token for the bot to stop",
+            },
+          },
+          required: ["tokenAddress"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "deleteMarketMakerBot",
+        description:
+          "Delete a market maker bot completely and return all remaining funds to the user's wallet. This action cannot be undone.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token for the bot to delete",
+            },
+          },
+          required: ["tokenAddress"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "getMarketMakerBotStatus",
+        description:
+          "Get detailed status information for a specific market maker bot including trading activity, balances, and performance metrics.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token for the bot to get status for (optional if current token context is available)",
+            },
+          },
+          required: [],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "getUserMarketMakerBots",
+        description:
+          "Get a list of all market maker bots created by the user, including their status, performance metrics, and configuration.",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "getMarketMakerBotLogs",
+        description:
+          "Get trading logs and activity history for a specific market maker bot, showing recent trades and actions.",
+        parameters: {
+          type: "object",
+          properties: {
+            tokenAddress: {
+              type: "string",
+              description:
+                "The contract address of the token for the bot to get logs for (optional if current token context is available)",
+            },
+            limit: {
+              type: "number",
+              description:
+                "Maximum number of log entries to return (default: 50, max: 100)",
+            },
+          },
+          required: [],
+        },
+      },
+    },
   ];
 }
