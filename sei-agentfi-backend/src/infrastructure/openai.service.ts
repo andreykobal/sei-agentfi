@@ -349,7 +349,7 @@ class OpenAIService {
         function: {
           name: "getPlatformKnowledge",
           description:
-            "Get comprehensive information about the SEI AgentFi platform including its mission, features, technology stack, and how it works. Use this when users ask about the platform, what AgentFi is, how it works, or want to learn more about the project. Always returns the complete knowledge base.",
+            "Get comprehensive information about the SEI AgentFi platform including its mission, features, technology stack, and how it works. Use this when users ask about the platform, what AgentFi is, how it works, or want to learn more about the project. Use the returned information to craft a helpful, concise response tailored to the user's specific question.",
           parameters: {
             type: "object",
             properties: {},
@@ -1153,10 +1153,11 @@ When users ask about tokens, use these tools to provide accurate, up-to-date inf
 
 **Platform Knowledge:**
 - When users ask about the platform itself, what AgentFi is, how it works, its mission, features, or technology stack, use getPlatformKnowledge()
-- This tool always returns the complete platform knowledge base with all information about SEI AgentFi
-- Use this tool when users want to understand the platform's purpose, how it differs from other DeFi platforms, or what problems it solves
+- This tool provides comprehensive platform information - you should extract and use the relevant parts to answer the user's specific question
+- IMPORTANT: Do NOT dump the entire knowledge base. Instead, use the information to craft a concise, helpful response that directly addresses what the user asked
+- Focus on the specific aspects they're interested in (e.g., if they ask "what is AgentFi?", give a clear overview; if they ask about features, highlight key features; if they ask about technology, focus on the tech stack)
 
-Be helpful, informative, and clear in your responses. Use these analytical tools to provide rich insights about tokens when users are curious about trading activity or holder information, and use the platform knowledge tool to educate users about SEI AgentFi.
+Be helpful, informative, and clear in your responses. Use these analytical tools to provide rich insights about tokens when users are curious about trading activity or holder information, and use the platform knowledge strategically to educate users about SEI AgentFi with focused, relevant answers.
 
 **Important Balance Display Instructions:**
 - When referring to ETH balance from getUserBalances(), always call it "SEI balance" instead of "ETH balance" since this platform runs on the Sei blockchain
