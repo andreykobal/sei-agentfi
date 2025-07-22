@@ -170,7 +170,7 @@ Event-sourced CQRS backend for AI-native DeFi platform with blockchain indexing,
 
 ## How it works
 
-<img width="2532" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-045915" src="https://github.com/user-attachments/assets/b736a408-75d7-4d67-bf4b-59c7bb1a0152" />
+<img width="2506" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-065012" src="https://github.com/user-attachments/assets/7f23780d-f66b-41e1-b5bf-75da483329af" />
 
 ## Architecture Overview
 
