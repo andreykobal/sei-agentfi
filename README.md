@@ -9,7 +9,7 @@
 ## 2️⃣ Demo Links
 
 🔗 **[Live Platform Demo](https://sei.avaethernity.top/)**  
-🎥 **[Demo Video (YouTube)](https://www.youtube.com/)**
+🎥 **[Demo Video (YouTube)](https://www.youtube.com/watch?v=OhMEQIwbwWA/)**
 
 **Sei Testnet Deployments**
 
