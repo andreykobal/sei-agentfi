@@ -69,13 +69,18 @@ It reduces risks for investors through transparent growth mechanisms, removes ba
 
 ---
 
-## 🔥 One-liner for the Pitch:
+## 🔥 One-liner
 
 _"AI-native DeFi platform delivering real-time market intelligence and agentic trading through autonomous AI agents — from automated token creation to AMM liquidity, shaping the future of DeFi."_
 
 # Conversational DeFi Interface
 
 **The killer feature of AgentFi: Execute complex blockchain operations through natural conversation**
+
+## How it Works
+
+<img width="2581" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-050036" src="https://github.com/user-attachments/assets/bc1bf485-bd8c-44b6-b79e-476cd40c1de6" />
+
 
 ## 🤖 AI-Powered Chat System
 
@@ -143,6 +148,11 @@ The AI has **complete access to real-time market data** and can spawn **autonomo
 # Backend Architecture
 
 Event-sourced CQRS backend for AI-native DeFi platform with blockchain indexing, conversational UI, and autonomous trading agents.
+
+## How it works
+
+<img width="2532" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-045915" src="https://github.com/user-attachments/assets/b736a408-75d7-4d67-bf4b-59c7bb1a0152" />
+
 
 ## Architecture Overview
 
@@ -345,6 +355,11 @@ POST /market-maker/create → Spawns autonomous trading bot
 # Smart Contracts - Bonding Curve Trading Platform
 
 A decentralized token trading platform built on Uniswap V4 that implements a bonding curve mechanism inspired by PUMP.FUN. Tokens start in a bonding curve phase, then graduate to normal Uniswap trading at 20,000 USDT raised.
+
+## How it Works
+
+<img width="3840" height="1230" alt="Untitled diagram _ Mermaid Chart-2025-07-22-050239" src="https://github.com/user-attachments/assets/4336e0d4-52e0-46bc-b3e9-f7444edbb888" />
+
 
 ## Token Lifecycle
 
