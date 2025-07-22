@@ -200,12 +200,12 @@ export async function adjustTradingStrategy(
     let updates: any = {};
     let adjustmentMade = false;
 
-    // Adjust growth bias based on effectiveness
+    // Adjust growth bias based on effectiveness (expanded range: 0.001-0.2)
     if (
       analysis.recommendation === "adjust_up" &&
-      currentBot.growthBuyBias < 0.1
+      currentBot.growthBuyBias < 0.2
     ) {
-      updates.growthBuyBias = Math.min(currentBot.growthBuyBias * 1.2, 0.1); // Increase by 20%, cap at 10%
+      updates.growthBuyBias = Math.min(currentBot.growthBuyBias * 1.2, 0.2); // Increase by 20%, cap at 20%
       adjustmentMade = true;
       console.log(
         `⚡ [STRATEGY ADJUST] Increasing growth bias to ${updates.growthBuyBias.toFixed(
@@ -214,9 +214,9 @@ export async function adjustTradingStrategy(
       );
     } else if (
       analysis.recommendation === "adjust_down" &&
-      currentBot.growthBuyBias > 0.005
+      currentBot.growthBuyBias > 0.001
     ) {
-      updates.growthBuyBias = Math.max(currentBot.growthBuyBias * 0.8, 0.005); // Decrease by 20%, floor at 0.5%
+      updates.growthBuyBias = Math.max(currentBot.growthBuyBias * 0.8, 0.001); // Decrease by 20%, floor at 0.1%
       adjustmentMade = true;
       console.log(
         `⚡ [STRATEGY ADJUST] Decreasing growth bias to ${updates.growthBuyBias.toFixed(
@@ -231,15 +231,15 @@ export async function adjustTradingStrategy(
         growthProgress.hourlyGrowthRate <
         currentBot.targetGrowthPerHour * 0.8
       ) {
-        // Too slow growth - trade more frequently
-        if (currentBot.minPauseBetweenTrades > 20) {
+        // Too slow growth - trade more frequently (expanded range: 10-300s)
+        if (currentBot.minPauseBetweenTrades > 10) {
           updates.minPauseBetweenTrades = Math.max(
             currentBot.minPauseBetweenTrades - 5,
-            20
+            10
           );
           updates.maxPauseBetweenTrades = Math.max(
             currentBot.maxPauseBetweenTrades - 10,
-            40
+            20
           );
           adjustmentMade = true;
           console.log(
@@ -250,19 +250,85 @@ export async function adjustTradingStrategy(
         growthProgress.hourlyGrowthRate >
         currentBot.targetGrowthPerHour * 1.2
       ) {
-        // Too fast growth - trade less frequently
-        if (currentBot.maxPauseBetweenTrades < 120) {
+        // Too fast growth - trade less frequently (expanded range: 10-300s)
+        if (currentBot.maxPauseBetweenTrades < 300) {
           updates.minPauseBetweenTrades = Math.min(
             currentBot.minPauseBetweenTrades + 5,
-            60
+            150
           );
           updates.maxPauseBetweenTrades = Math.min(
             currentBot.maxPauseBetweenTrades + 10,
-            120
+            300
           );
           adjustmentMade = true;
           console.log(
             `⚡ [STRATEGY ADJUST] Decreasing trade frequency: ${updates.minPauseBetweenTrades}-${updates.maxPauseBetweenTrades}s`
+          );
+        }
+      }
+    }
+
+    // Alternative adjustments when main parameters hit limits
+    if (
+      !adjustmentMade &&
+      (analysis.recommendation === "adjust_down" ||
+        analysis.recommendation === "adjust_up")
+    ) {
+      // Try alternative adjustments when main parameters are at limits
+      if (analysis.recommendation === "adjust_down") {
+        // If growth bias is at minimum, try increasing pause times
+        if (
+          currentBot.growthBuyBias <= 0.001 &&
+          currentBot.maxPauseBetweenTrades < 300
+        ) {
+          updates.maxPauseBetweenTrades = Math.min(
+            currentBot.maxPauseBetweenTrades + 20,
+            300
+          );
+          updates.minPauseBetweenTrades = Math.min(
+            currentBot.minPauseBetweenTrades + 10,
+            150
+          );
+          adjustmentMade = true;
+          console.log(
+            `⚡ [STRATEGY ADJUST] Alt: Increasing pause times (bias at min): ${updates.minPauseBetweenTrades}-${updates.maxPauseBetweenTrades}s`
+          );
+        }
+        // If both bias and pause are at limits, reduce trade size range
+        else if (
+          currentBot.growthBuyBias <= 0.001 &&
+          currentBot.maxPauseBetweenTrades >= 300
+        ) {
+          console.log(
+            `📊 [STRATEGY ADJUST] All down-adjustment parameters at limits`
+          );
+        }
+      } else if (analysis.recommendation === "adjust_up") {
+        // If growth bias is at maximum, try decreasing pause times
+        if (
+          currentBot.growthBuyBias >= 0.2 &&
+          currentBot.minPauseBetweenTrades > 10
+        ) {
+          updates.minPauseBetweenTrades = Math.max(
+            currentBot.minPauseBetweenTrades - 10,
+            10
+          );
+          updates.maxPauseBetweenTrades = Math.max(
+            currentBot.maxPauseBetweenTrades - 20,
+            20
+          );
+          adjustmentMade = true;
+          console.log(
+            `⚡ [STRATEGY ADJUST] Alt: Decreasing pause times (bias at max): ${updates.minPauseBetweenTrades}-${updates.maxPauseBetweenTrades}s`
+          );
+        }
+        // If both bias and pause are at limits
+        else if (
+          currentBot.growthBuyBias >= 0.2 &&
+          currentBot.minPauseBetweenTrades <= 10
+        ) {
+          console.log(
+            `📊 [STRATEGY ADJUST] All up-adjustment parameters at limits`
           );
         }
       }
@@ -274,7 +340,7 @@ export async function adjustTradingStrategy(
       console.log(`✅ [STRATEGY ADJUST] Strategy updated for bot ${botId}`);
     } else {
       console.log(
-        `📊 [STRATEGY ADJUST] No adjustments needed for bot ${botId}`
+        `📊 [STRATEGY ADJUST] No adjustments possible for bot ${botId} - parameters at limits`
       );
     }
   } catch (error) {

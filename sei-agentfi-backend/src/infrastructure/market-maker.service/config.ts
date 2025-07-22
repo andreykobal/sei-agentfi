@@ -55,7 +55,7 @@ export function calculateOptimalParameters(
     maxTradePercentage: 3, // 3% of budget per trade
     minPauseBetweenTrades: 40, // 40 seconds minimum (60 - 20)
     maxPauseBetweenTrades: 80, // 80 seconds maximum (60 + 20)
-    growthBuyBias: 0.02, // 2% buy bias for growth
+    growthBuyBias: 0.02, // 2% buy bias for growth (range: 0.001-0.2)
   };
 
   // Adjust parameters based on target growth

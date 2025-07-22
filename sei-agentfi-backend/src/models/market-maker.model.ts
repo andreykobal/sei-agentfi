@@ -31,6 +31,10 @@ export interface IMarketMakerBot extends Document {
   // Strategy settings
   growthBuyBias: number; // How much buy exceeds sell for growth (e.g., 0.02 = 2%)
 
+  // Trade alternation tracking
+  consecutiveBuys: number; // Number of consecutive buy trades
+  consecutiveSells: number; // Number of consecutive sell trades
+
   // Statistics
   totalTrades: number;
   totalBuyVolume: string; // Total USDT spent on buys (wei)
@@ -115,11 +119,16 @@ const marketMakerBotSchema = new Schema<IMarketMakerBot>(
       min: 0.1,
       max: 10,
     },
-    minPauseBetweenTrades: { type: Number, required: true, default: 2, min: 1 },
+    minPauseBetweenTrades: {
+      type: Number,
+      required: true,
+      default: 40,
+      min: 10,
+    },
     maxPauseBetweenTrades: {
       type: Number,
       required: true,
-      default: 10,
+      default: 80,
       max: 300,
     },
 
@@ -128,9 +137,13 @@ const marketMakerBotSchema = new Schema<IMarketMakerBot>(
       type: Number,
       required: true,
       default: 0.02,
-      min: 0,
-      max: 0.1,
+      min: 0.001,
+      max: 0.2,
     },
+
+    // Trade alternation tracking
+    consecutiveBuys: { type: Number, required: true, default: 0 },
+    consecutiveSells: { type: Number, required: true, default: 0 },
 
     // Statistics
     totalTrades: { type: Number, required: true, default: 0 },

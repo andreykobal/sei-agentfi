@@ -73,6 +73,28 @@ function getRandomTradePercentage(min: number, max: number): number {
 }
 
 /**
+ * Get adaptive trade size based on portfolio balance
+ */
+function getAdaptiveTradeSize(
+  bot: IMarketMakerBot,
+  usdtPercentage: number,
+  tokenPercentage: number
+): { minPercent: number; maxPercent: number } {
+  // Larger trades when severely imbalanced (>80% or <20%)
+  if (usdtPercentage > 80 || usdtPercentage < 20) {
+    return { minPercent: 3, maxPercent: 8 }; // 3-8% for fast rebalancing
+  }
+
+  // Medium trades when moderately imbalanced (60-80% or 20-40%)
+  if (usdtPercentage > 60 || usdtPercentage < 40) {
+    return { minPercent: 2, maxPercent: 5 }; // 2-5% for gradual rebalancing
+  }
+
+  // Small trades when balanced (40-60%)
+  return { minPercent: 1, maxPercent: 3 }; // 1-3% for fine-tuning
+}
+
+/**
  * Make trade decision based on current balances and bot configuration
  */
 function makeTradeDecision(
@@ -84,17 +106,6 @@ function makeTradeDecision(
   const budgetWei = BigInt(bot.budget);
   const currentUsdtWei = BigInt(currentUsdtBalance);
   const currentTokenWei = BigInt(currentTokenBalance);
-
-  // Calculate trade amount (random percentage of budget)
-  const tradePercentage = getRandomTradePercentage(
-    bot.minTradePercentage,
-    bot.maxTradePercentage
-  );
-
-  const tradeAmountWei =
-    (budgetWei * BigInt(Math.floor(tradePercentage * 100))) / BigInt(10000);
-  const buyAmount = tradeAmountWei; // Amount in USDT wei to spend on buying
-  const sellAmount = tradeAmountWei; // Amount in token wei to sell
 
   // Determine if we should buy or sell based on current balances
   // Calculate tokens value in USDT: (tokenBalance * tokenPrice) / 10^18
@@ -113,6 +124,22 @@ function makeTradeDecision(
 
   const tokenPercentage = 100 - usdtPercentage;
 
+  // Get adaptive trade size based on current balance
+  const adaptiveSize = getAdaptiveTradeSize(
+    bot,
+    usdtPercentage,
+    tokenPercentage
+  );
+  const tradePercentage = getRandomTradePercentage(
+    adaptiveSize.minPercent,
+    adaptiveSize.maxPercent
+  );
+
+  const tradeAmountWei =
+    (budgetWei * BigInt(Math.floor(tradePercentage * 100))) / BigInt(10000);
+  const buyAmount = tradeAmountWei; // Amount in USDT wei to spend on buying
+  const sellAmount = tradeAmountWei; // Amount in token wei to sell
+
   console.log(`🧮 [MARKET MAKER] Balance analysis:`);
   console.log(`  - USDT balance: ${formatEther(currentUsdtWei)} USDT`);
   console.log(`  - Token balance: ${formatEther(currentTokenWei)} tokens`);
@@ -123,11 +150,42 @@ function makeTradeDecision(
   console.log(`  - Total portfolio: ${formatEther(totalPortfolioValue)} USDT`);
   console.log(`  - USDT: ${usdtPercentage.toFixed(1)}%`);
   console.log(`  - Tokens: ${tokenPercentage.toFixed(1)}%`);
+  console.log(
+    `  - Trade size range: ${adaptiveSize.minPercent}-${
+      adaptiveSize.maxPercent
+    }% (${tradePercentage.toFixed(1)}% selected)`
+  );
   console.log(`  - Buy amount: ${formatEther(buyAmount)} USDT`);
   console.log(`  - Sell amount: ${formatEther(sellAmount)} tokens`);
+  console.log(
+    `  - Consecutive buys: ${bot.consecutiveBuys}, sells: ${bot.consecutiveSells}`
+  );
 
-  // Decision logic with more balanced thresholds
-  if (usdtPercentage > 70) {
+  // Forced alternation: prevent too many consecutive trades of same type
+  if (
+    bot.consecutiveBuys >= 5 &&
+    tokenPercentage > 20 &&
+    currentTokenWei >= sellAmount
+  ) {
+    console.log(
+      `🔄 [MARKET MAKER] Forcing SELL after ${bot.consecutiveBuys} consecutive buys`
+    );
+    return { action: "sell", amount: sellAmount.toString() };
+  }
+
+  if (
+    bot.consecutiveSells >= 3 &&
+    usdtPercentage > 20 &&
+    currentUsdtWei >= buyAmount
+  ) {
+    console.log(
+      `🔄 [MARKET MAKER] Forcing BUY after ${bot.consecutiveSells} consecutive sells`
+    );
+    return { action: "buy", amount: buyAmount.toString() };
+  }
+
+  // Decision logic with more balanced thresholds (55%/45% instead of 70%/30%)
+  if (usdtPercentage > 55) {
     // Too much USDT, prefer buying
     console.log(
       `💰 [MARKET MAKER] Too much USDT (${usdtPercentage.toFixed(
@@ -137,7 +195,7 @@ function makeTradeDecision(
     if (currentUsdtWei >= buyAmount) {
       return { action: "buy", amount: buyAmount.toString() };
     }
-  } else if (usdtPercentage < 30) {
+  } else if (usdtPercentage < 45) {
     // Too many tokens, prefer selling
     console.log(
       `🪙 [MARKET MAKER] Too many tokens (${tokenPercentage.toFixed(
@@ -148,12 +206,12 @@ function makeTradeDecision(
       return { action: "sell", amount: sellAmount.toString() };
     }
   } else {
-    // Balanced, alternate trades with growth bias
+    // Balanced (45-55%), alternate trades with growth bias
     const shouldBuy = Math.random() < 0.6; // 60% chance to buy (growth bias)
     console.log(
-      `⚖️ [MARKET MAKER] Balanced portfolio, random choice: ${
-        shouldBuy ? "BUY" : "SELL"
-      }`
+      `⚖️ [MARKET MAKER] Balanced portfolio (${usdtPercentage.toFixed(
+        1
+      )}% USDT), random choice: ${shouldBuy ? "BUY" : "SELL"}`
     );
 
     if (shouldBuy && currentUsdtWei >= buyAmount) {
@@ -324,6 +382,8 @@ export async function executeTrade(botId: string): Promise<void> {
           totalBuyVolume: (
             BigInt(botDoc.totalBuyVolume) + BigInt(tradeDecision.amount)
           ).toString(),
+          consecutiveBuys: botDoc.consecutiveBuys + 1,
+          consecutiveSells: 0, // Reset sell counter
           lastTradeAt: new Date(),
         });
 
@@ -374,6 +434,8 @@ export async function executeTrade(botId: string): Promise<void> {
           totalSellVolume: (
             BigInt(botDoc.totalSellVolume) + BigInt(tradeDecision.amount)
           ).toString(),
+          consecutiveBuys: 0, // Reset buy counter
+          consecutiveSells: botDoc.consecutiveSells + 1,
           lastTradeAt: new Date(),
         });
 
