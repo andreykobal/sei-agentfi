@@ -1,4 +1,4 @@
-# SEI AgentFi - AI-native DeFi platform
+# SEI AgentFi — Autonomous DeFi Infrastructure Powered by AI
 
 ## 1️⃣ Project Name
 
@@ -291,49 +291,6 @@ The market maker service implements autonomous trading bots that provide liquidi
 4. **Autonomous Execution**: Bot trades continuously with randomized timing
 5. **Performance Monitoring**: Real-time analytics and strategy adjustments
 
-## Event Sourcing Flow
-
-### 1. External Event Stream (Blockchain)
-
-```typescript
-// Smart contract emits events
-emit TokenCreated(tokenAddress, creator, name, symbol, ...)
-emit TokenPurchase(wallet, tokenAddress, amountIn, amountOut, ...)
-```
-
-### 2. Stream Processing (Ponder Indexer)
-
-```typescript
-// Ponder captures blockchain events
-ponder.on("BondingCurve:TokenCreated", async ({ event, context }) => {
-  // Index to SQL database
-  await context.db.insert(tokenCreated).values({ ...event.args });
-
-  // Forward to domain handlers
-  await TokenProjection.handleTokenCreated(event);
-});
-```
-
-### 3. Projection Building (Read Models)
-
-```typescript
-// Build analytics from events
-static async handleTokenPurchase(event: TokenPurchaseEvent) {
-  // Update token price and market cap
-  // Recalculate holder distribution
-  // Update 24h trading volumes
-  // Trigger market maker analysis
-}
-```
-
-### 4. API Layer
-
-```typescript
-// Serve optimized read models
-GET /tokens/:address → Returns materialized token analytics
-POST /chat/message → AI accesses live market data
-POST /market-maker/create → Spawns autonomous trading bot
-```
 
 # Smart Contracts - Bonding Curve Trading Platform
 
