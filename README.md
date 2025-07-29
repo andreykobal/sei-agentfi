@@ -2,7 +2,7 @@
 
 ## 1️⃣ Project Name
 
-**SEI: AgentFi** - _Autonomous DeFi Infrastructure Powered by AI for real-time insights and autonomous trading_
+**SEI: AgentFi** - _Autonomous DeFi Infrastructure Powered by AI for real-time market intelligence and autonomous trading_
 
 ![Create-Next-App-07-22-2025_07_17_AM](https://github.com/user-attachments/assets/65fab474-79ad-4498-a375-36edd7cc6e12)
 
