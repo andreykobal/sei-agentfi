@@ -77,7 +77,7 @@ By automating liquidity provisioning, trading volume, and analytics, the platfor
 
 ---
 
-## 🔥 One-liner
+## 🔥 Elevator Pitch
 
 _"From token launch to automated liquidity — a full-stack AI-native DeFi platform driven by real-time insights and autonomous trading agents."_
 
@@ -379,38 +379,3 @@ With our constants:
 
 This creates a smooth price curve that increases predictably with purchases.
 
-## Smart Contracts
-
-### Core Contracts
-
-#### BondingCurve.sol
-
-Uniswap V4 hook that manages the token lifecycle:
-
-- **Token Creation**: Creates tokens via TokenFactory with metadata
-- **Bonding Curve Logic**: Implements PUMP.FUN's pricing formula
-- **Buy/Sell Functions**: Direct token trading with automated pricing
-- **Graduation System**: Creates pools and adds liquidity at 20K USDT
-- **Swap Protection**: Prevents Uniswap swaps during bonding curve phase
-- **Event Logging**: Emits price and trading events
-
-Constants:
-
-- 1 billion token max supply per token
-- 20,000 USDT graduation threshold
-
-#### TokenFactory.sol
-
-Factory contract for creating ERC20 tokens:
-
-- **Token Deployment**: Creates MockERC20 tokens with custom parameters
-- **Metadata Support**: Stores token information (name, symbol, decimals, initial supply)
-- **Creator Tracking**: Tracks tokens created by each address
-- **Registry**: Maintains list of all created tokens
-
-#### MockERC20.sol
-
-ERC20 token with additional functionality:
-
-- **Standard ERC20**: Full ERC20 compliance with custom decimals
-- **Mint/Burn**: Functions for bonding curve to mint/burn tokens
