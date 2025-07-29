@@ -335,23 +335,6 @@ POST /chat/message → AI accesses live market data
 POST /market-maker/create → Spawns autonomous trading bot
 ```
 
-## Technology Stack
-
-- **Event Processing**: Ponder (blockchain indexing)
-- **AI/ML**: OpenAI GPT-4 with custom tools
-- **Blockchain**: Viem (SEI testnet integration)
-- **Database**: MongoDB (read models), PostgreSQL (Ponder events)
-- **Runtime**: Node.js with TypeScript
-- **API**: Hono framework with JWT authentication
-
-## Key Features
-
-- **Event-Driven Architecture**: Reactive to all blockchain activity
-- **AI-Native Interface**: Conversational access to all platform features
-- **Autonomous Agents**: Self-managing market maker bots
-- **Real-time Analytics**: Live materialized views from blockchain events
-- **Event-Driven Pattern**: Optimized reads and writes for different use cases
-
 # Smart Contracts - Bonding Curve Trading Platform
 
 A decentralized token trading platform built on Uniswap V4 that implements a bonding curve mechanism inspired by PUMP.FUN. Tokens start in a bonding curve phase, then graduate to normal Uniswap trading at 20,000 USDT raised.
