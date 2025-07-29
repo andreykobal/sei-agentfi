@@ -379,3 +379,11 @@ With our constants:
 
 This creates a smooth price curve that increases predictably with purchases.
 
+
+Вот готовый блок `License` для твоего проекта SEI AgentFi — в зависимости от того, как ты хочешь его распространять:
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
