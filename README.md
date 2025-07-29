@@ -2,7 +2,7 @@
 
 ## 1️⃣ Project Name
 
-**SEI: AgentFi** - _AI-native protocol for real-time market intelligence, token lifecycle automation, and autonomous trading_
+**SEI: AgentFi** - _AI-native DeFi protocol for real-time market intelligence, token lifecycle automation, and autonomous trading_
 
 ![Create-Next-App-07-22-2025_07_17_AM](https://github.com/user-attachments/assets/65fab474-79ad-4498-a375-36edd7cc6e12)
 
