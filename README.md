@@ -65,21 +65,9 @@ We are creating a standardized, automated method for launching and supporting De
 
 ### Architecture
 
-**Event-Sourced CQRS with External Event Stream and Stream-Driven Projections**
-
-1️⃣ **External Event Stream (Blockchain Logs)**
-
-2️⃣ **Stream Processing (Indexing / Projection)**
-
-3️⃣ **Materialized Views / Read Models (MongoDB)**
-
-4️⃣ **CQRS API (Analytics, Dashboards, Insights)**
-
----
-
 Blockchain (Uniswap) serves as the **source of truth**, from which we read events like token launches, swaps, and liquidity changes.
 
-These events are processed, projections are built into MongoDB (e.g., for token stats, prices, volumes, liquidity), and via separate CQRS routes, we deliver ready-made data for analytics, market dashboards, and insights.
+These events are processed, projections are built into MongoDB (e.g., for token stats, prices, volumes, liquidity), and via separate API routes, we deliver ready-made data for analytics, market dashboards, and insights.
 
 ## 8️⃣ Why It Matters / Benefits / Impact
 
@@ -164,19 +152,13 @@ Traditional DeFi requires users to navigate complex interfaces, understand gas f
 
 The AI has **complete access to real-time market data** and can spawn **autonomous trading agents** that operate independently, creating a truly agentic trading ecosystem where users collaborate with AI to navigate DeFi markets.
 
-# Backend Architecture
-
-Event-sourced CQRS backend for AI-native DeFi platform with blockchain indexing, conversational UI, and autonomous trading agents.
-
 ## How it works
 
 <img width="2506" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-07-22-065012" src="https://github.com/user-attachments/assets/7f23780d-f66b-41e1-b5bf-75da483329af" />
 
 ## Architecture Overview
 
-**Event-Sourced CQRS with External Event Stream**
-
-The backend implements a sophisticated event sourcing architecture where the blockchain serves as the external event stream:
+**The backend implements a sophisticated event sourcing architecture where the blockchain serves as the external event stream:**
 
 ```
 Blockchain (External Event Stream)
@@ -187,7 +169,7 @@ Domain Event Handlers
     ↓
 Projections (Read Models) → MongoDB
     ↓
-CQRS APIs (Analytics, Chat, Trading)
+APIs (Analytics, Chat, Trading)
 ```
 
 ### Why This Architecture
@@ -211,7 +193,7 @@ CQRS APIs (Analytics, Chat, Trading)
 
 ```
 src/
-├── api/                          # CQRS API endpoints
+├── api/                          # API endpoints
 │   ├── auth.api.ts              # JWT auth, wallet generation, user funding
 │   ├── chat.api.ts              # AI chat interface with OpenAI integration
 │   ├── tokens.api.ts            # Token analytics and market data
@@ -221,7 +203,7 @@ src/
 │   ├── market-maker.api.ts      # Autonomous trading bot management
 │   └── index.ts                 # API router and MongoDB initialization
 │
-├── application/                  # Command handlers (CQRS writes)
+├── application/                  # Command handlers (writes)
 │   ├── create-token.command.ts  # Execute token creation on blockchain
 │   ├── buy-tokens.command.ts    # Execute token purchases via bonding curve
 │   └── sell-tokens.command.ts   # Execute token sales via bonding curve
@@ -268,7 +250,7 @@ src/
 │   ├── user.model.ts            # User accounts and wallet mapping
 │   └── market-maker.model.ts    # Trading bot state and logs
 │
-├── projections/                  # Read model builders (CQRS reads)
+├── projections/                  # Read model builders (reads)
 │   └── token.projection.ts      # Build token analytics from events
 │
 └── index.ts                     # Domain event handler imports
@@ -344,7 +326,7 @@ static async handleTokenPurchase(event: TokenPurchaseEvent) {
 }
 ```
 
-### 4. CQRS API Layer
+### 4. API Layer
 
 ```typescript
 // Serve optimized read models
@@ -368,7 +350,7 @@ POST /market-maker/create → Spawns autonomous trading bot
 - **AI-Native Interface**: Conversational access to all platform features
 - **Autonomous Agents**: Self-managing market maker bots
 - **Real-time Analytics**: Live materialized views from blockchain events
-- **CQRS Pattern**: Optimized reads and writes for different use cases
+- **Event-Driven Pattern**: Optimized reads and writes for different use cases
 
 # Smart Contracts - Bonding Curve Trading Platform
 
