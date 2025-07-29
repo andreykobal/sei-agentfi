@@ -71,15 +71,15 @@ These events are processed, projections are built into MongoDB (e.g., for token 
 
 ## 8️⃣ Why It Matters / Benefits / Impact
 
-The platform removes the main barrier in DeFi between a token idea and a functioning market with real activity.
+AgentFi solves a core problem in DeFi: the gap between launching a token and achieving real market activity.
 
-It reduces risks for investors through transparent growth mechanisms, removes barriers for projects **(no need for expensive market makers)**, and creates a healthier token ecosystem where market activity is managed by AI agents, not manipulation.
+By automating liquidity provisioning, trading volume, and analytics, the platform removes the need for manual intervention or expensive market makers. This reduces investor risk through transparent, rules-based price discovery and creates a more stable token ecosystem — where trading is driven by AI logic, not hype or manipulation.
 
 ---
 
 ## 🔥 One-liner
 
-_"AI-native DeFi platform delivering real-time market intelligence and agentic trading through autonomous AI agents — from automated token creation to AMM liquidity, shaping the future of DeFi."_
+_"From token launch to automated liquidity — a full-stack AI-native DeFi platform driven by real-time insights and autonomous trading agents."_
 
 # Conversational DeFi Interface
 
