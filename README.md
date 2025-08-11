@@ -24,7 +24,7 @@
 
 ## 3️⃣ Problem
 
-Traditional token launchpads suffer from fragmented user experiences, requiring technical expertise to navigate complex DeFi interfaces. Projects launch without Autonomous Liquidity Provision, lack AI Risk-Hedging mechanisms, and fail to provide Intent-Centric DeFi experiences that translate user goals into automated execution.
+The DeFi landscape is a paradox of opportunity and complexity. For developers, launching a token is just the beginning of a costly, manual battle for liquidity and market presence. For traders, navigating fragmented interfaces and avoiding failed projects is a full-time job. The core issue remains: **user intent is lost in translation**. There is no seamless bridge between a user's financial goals and automated, risk-managed on-chain execution. This friction costs capital, stifles innovation, and keeps DeFi from its true potential—leaving billions in unrealized value trapped behind technical barriers.
 
 ## 4️⃣ Solution
 
@@ -44,7 +44,19 @@ Traditional token launchpads suffer from fragmented user experiences, requiring 
 
 🔹 **Autonomous Pool Graduation** — AI-managed transition from bonding curves to full Uniswap V4 AMM pools at 20,000 USDT raised, ensuring seamless liquidity continuity and price discovery.
 
-## 6️⃣ Target Audience
+## 6️⃣ Why SEI DeFAI is Natively Built for Sei
+
+Our vision for autonomous, high-frequency agentic trading is only possible on a network built for speed and efficiency.
+
+🚀 **Sub-400ms Finality**: DeAgents must react to market data and execute trades in near real-time. Sei's lightning-fast finality ensures our AI's decisions are acted upon instantly, a crucial edge in volatile markets.
+
+⚡ **Twin-Turbo Consensus & Parallelization**: Our Multiagentic AI system can submit dozens of concurrent actions—market making, rebalancing, analytics queries. Sei's parallel processing handles this high-throughput workload without bottlenecks, something impossible on traditional sequential blockchains.
+
+💰 **Low Gas Fees**: For agents to execute hundreds or thousands of micro-transactions daily, costs must be minimal. Sei's low-fee environment makes our high-frequency strategies economically viable.
+
+🔗 **Native DeFi Ecosystem**: Sei's growing DeFi infrastructure provides the perfect foundation for our AI-driven protocols to integrate and expand.
+
+## 7️⃣ Target Audience
 
 **Token Developers** — Get out-of-the-box liquidity, trading bots, and analytics to support their projects.
 
@@ -52,7 +64,19 @@ Traditional token launchpads suffer from fragmented user experiences, requiring 
 
 **Meme Coin and Experimental Token Creators** — Quickly launch projects with transparent growth models.
 
-## 7️⃣ Technology Stack
+## 8️⃣ Track Alignment: DeFi and Payments
+
+We are submitting under the **DeFi and Payments Track**. SEI DeFAI directly addresses the track's core goals by:
+
+🏗️ **Enhancing DeFi Protocols**: We provide a foundational layer for launching and sustaining new DeFi assets, complete with automated liquidity from Uniswap V4 hooks and AI-driven market making.
+
+🤖 **Intelligent Automation**: Our entire platform is built on intelligent automation, from AI-driven smart contracts to autonomous market-making DeAgents that operate 24/7 without human intervention.
+
+🎯 **Improved User Experiences**: Our Intent-Centric Abstraction Protocol replaces complex UIs with simple, natural language interactions, making DeFi radically more accessible to mainstream users.
+
+💡 **Innovation in Payments**: We enable programmable payment flows through DeAgents that can automatically execute complex financial strategies, from token launches to portfolio rebalancing.
+
+## 9️⃣ Technology Stack
 
 - **Blockchain**: SEI Network
 - **Smart Contracts**: Solidity (Uniswap V4 + custom bonding curve)
@@ -69,17 +93,59 @@ Blockchain (Uniswap) serves as the **source of truth**, from which we read event
 
 These events are processed, projections are built into MongoDB (e.g., for token stats, prices, volumes, liquidity), and via separate API routes, we deliver ready-made data for analytics, market dashboards, and insights.
 
-## 8️⃣ Why It Matters / Benefits / Impact
+## 🔟 Why It Matters / Benefits / Impact
 
-AgentFi solves a core problem in DeFi: the gap between launching a token and achieving real market activity.
+SEI DeFAI solves a core problem in DeFi: the gap between launching a token and achieving real market activity.
 
 By automating liquidity provisioning, trading volume, and analytics, the platform removes the need for manual intervention or expensive market makers. This reduces investor risk through transparent, rules-based price discovery and creates a more stable token ecosystem — where trading is driven by AI logic, not hype or manipulation.
 
 ---
 
+# 🗺️ Vision & Roadmap: The Path to a Sovereign Agent Economy
+
+Our mission is to build the foundational infrastructure for an economy run by sovereign AI agents. We begin with the most critical DeFi primitive—liquidity—and will expand to encompass the entire on-chain financial world.
+
+## Phase 1: Foundation — The Intent-Centric Launchpad (Current MVP)
+
+✅ **AI-Driven Launchpad**: A fully functional platform for launching new tokens via a conversational UI, powered by our Intent-Centric Abstraction Protocol.
+
+✅ **Autonomous Liquidity DeAgents**: Sovereign market-making agents with dedicated wallets that provide liquidity, generate organic trading volume, and execute pre-defined growth strategies 24/7.
+
+✅ **Uniswap V4 Integration**: Natively utilizing Uniswap V4 hooks for a state-of-the-art bonding curve mechanism that seamlessly graduates to full AMM pools.
+
+✅ **Real-Time Conversational Analytics**: An AI assistant capable of answering complex on-chain data queries in natural language with 20+ specialized tools.
+
+## Phase 2: Intelligence & Expansion — Beyond the Launch (Q1-Q2 2026)
+
+🧠 **Off-Chain Intelligence Integration**: Enhance DeAgents with real-time social sentiment analysis from sources like X and Farcaster. Users can set intent-based rules like: _"If negative sentiment for my token spikes by 50%, automatically hedge 25% of the portfolio into USDC."_
+
+📈 **Advanced Portfolio & Order Management**: Expand capabilities beyond new launches to manage entire existing portfolios on Sei. Introduce advanced, AI-optimized order types via the conversational interface:
+
+- **AI-TWAP/DCA**: _"Slowly buy 10,000 SEI over the next 24 hours, but execute larger chunks when network gas is low."_
+- **Automated Yield Farming**: _"Find the highest-yield stablecoin farm on Sei and move my idle USDC there."_
+
+🛡️ **Proactive Risk-Hedging & Simulation**:
+
+- **Pre-Transaction Simulation**: Before any agent action, the AI will confirm with the user, showing the simulated outcome, including slippage and fees.
+- **Per-User Agent Contracts**: Offer users the option to deploy their DeAgent as a personal, non-custodial smart contract they exclusively own, providing ultimate security and control.
+
+🌐 **Social & Messenger Integration**: Launch a Telegram Bot allowing users to manage their DeAgents, receive critical alerts, and perform trades directly from their mobile device, creating a viral on-ramp.
+
+## Phase 3: Platform & Ecosystem — The Sovereign Economy (Q3 2026 & Beyond)
+
+🏛️ **The DeAgent Marketplace**: Evolve from a tool into a platform. Launch a marketplace where expert traders and developers can create, share, and monetize their own DeAgent strategies. Novice users can "subscribe" to a proven agent strategy with a single click, creating a revenue-sharing ecosystem.
+
+🛠️ **No-Code Strategy Builder**: To power the marketplace, we will release a visual, drag-and-drop interface for building custom agent logic. This will democratize agent creation, allowing anyone to design and deploy sophisticated strategies without writing a single line of code.
+
+💼 **Institutional & B2B APIs**: Launch an enterprise-grade API for DAOs, crypto treasuries, and hedge funds to programmatically access our agentic infrastructure for treasury management, automated payroll, and market-making as a service.
+
+🌌 **Multi-Chain Abstraction Protocol**: Expand the Abstraction Protocol to support other blockchain ecosystems, with Sei acting as the central coordination and settlement hub. This positions Sei as the "brain" for a network of interconnected AI agents operating across the entire Web3 landscape.
+
+---
+
 ## 🔥 Elevator Pitch
 
-_**"SEI DeFAI: The first Intent-Centric AI launchpad where Multiagentic DeAgents transform natural language into autonomous token ecosystems. Our Abstraction Protocol delivers Autonomous Liquidity Provision through AI-Driven Smart Contracts, enabling anyone to launch and scale DeFi projects via conversational commands — from creation to graduation, powered by Agentic AI with built-in AI Risk-Hedging."**_
+_**"SEI DeFAI is the Intent-Centric future of DeFi. We've built an Abstraction Protocol where users express goals in plain English, and our sovereign DeAgents autonomously launch, manage, and scale entire token ecosystems on Sei—complete with AI-driven liquidity and risk management. Just state your intent, and watch natural language transform into sovereign on-chain action."**_
 
 # Intent-Centric Abstraction Protocol
 
