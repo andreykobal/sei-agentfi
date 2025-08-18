@@ -42,43 +42,41 @@ export class ChartService {
   /**
    * Get OHLC chart data for a token with 5-minute intervals
    * @param tokenAddress The token address to get chart data for
-   * @param days Number of days of historical data to fetch (default: 7)
+   * @param days Number of days of historical data to fetch (0 = all data, default: 0)
    * @returns Chart data with 5-minute OHLC candlesticks
    */
   static async getTokenChartData(
     tokenAddress: string,
-    days: number = 7
+    days: number = 0
   ): Promise<ChartDataResponse> {
     try {
       console.log(
-        `🔄 Getting chart data for token: ${tokenAddress}, ${days} days`
+        `🔄 Getting chart data for token: ${tokenAddress}, ${
+          days === 0 ? "all historical" : days + " days"
+        }`
       );
 
       // Calculate timestamp for the specified time range
       const nowTimestamp = Math.floor(Date.now() / 1000);
-      const startTimestamp = nowTimestamp - days * 24 * 60 * 60;
+      const startTimestamp =
+        days === 0 ? 0 : nowTimestamp - days * 24 * 60 * 60;
 
       // Get all purchases and sales for the token in the time range
-      const [purchases, sales] = await Promise.all([
-        TokenPurchase.find({
-          tokenAddress: tokenAddress,
-          timestamp: {
-            $gte: startTimestamp.toString(),
-            $lte: nowTimestamp.toString(),
-          },
-        })
-          .sort({ timestamp: 1 })
-          .lean(),
+      const timestampQuery =
+        days === 0
+          ? { tokenAddress: tokenAddress } // No timestamp filter for all historical data
+          : {
+              tokenAddress: tokenAddress,
+              timestamp: {
+                $gte: startTimestamp.toString(),
+                $lte: nowTimestamp.toString(),
+              },
+            };
 
-        TokenSale.find({
-          tokenAddress: tokenAddress,
-          timestamp: {
-            $gte: startTimestamp.toString(),
-            $lte: nowTimestamp.toString(),
-          },
-        })
-          .sort({ timestamp: 1 })
-          .lean(),
+      const [purchases, sales] = await Promise.all([
+        TokenPurchase.find(timestampQuery).sort({ timestamp: 1 }).lean(),
+
+        TokenSale.find(timestampQuery).sort({ timestamp: 1 }).lean(),
       ]);
 
       console.log(

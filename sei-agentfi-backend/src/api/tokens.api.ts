@@ -212,14 +212,14 @@ tokens.get("/creator/:creator", async (c) => {
 tokens.get("/chart/:address", async (c) => {
   try {
     const address = c.req.param("address");
-    const days = parseInt(c.req.query("days") || "7");
+    const days = parseInt(c.req.query("days") || "0"); // 0 means all historical data
 
-    // Validate days parameter
-    if (days < 1 || days > 30) {
+    // Validate days parameter - allow 0 for full history, or any positive number
+    if (days < 0) {
       return c.json(
         {
           success: false,
-          error: "Days parameter must be between 1 and 30",
+          error: "Days parameter must be 0 (for all data) or a positive number",
           data: null,
         },
         400
