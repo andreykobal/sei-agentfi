@@ -10,6 +10,7 @@
 
 🔗 **[Live Platform Demo](https://avaethernity.top/)**  
 🎥 **[Demo Video (YouTube)](https://www.youtube.com/watch?v=OhMEQIwbwWA/)**
+🌐 **[Follow Sei DeFAI on X](https://x.com/seidefai)**
 
 **Sei Testnet Deployments**
 
